@@ -176,12 +176,7 @@
         copiedPages.forEach(page => mergedPdf.addPage(page));
       }
 
-      const pdfBytes = await mergedPdf.save();
-      const blob = new Blob([pdfBytes], {type:'application/pdf'});
-      downloadLink.href = URL.createObjectURL(blob);
-      downloadLink.style.display = 'inline-block';
-      downloadLink.textContent = 'Descargar PDF unido';
-      downloadLink.download = 'merged.pdf';
+   downloadAndSavePDF(pdfDoc, "MiArchivo.pdf");
     } catch (e) {
       alert('Error al unir PDFs: ' + e.message);
     }
@@ -217,12 +212,7 @@
         });
       }
 
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], {type:'application/pdf'});
-      downloadLink.href = URL.createObjectURL(blob);
-      downloadLink.style.display = 'inline-block';
-      downloadLink.textContent = 'Descargar PDF de imágenes';
-      downloadLink.download = 'images.pdf';
+    downloadAndSavePDF(pdfDoc, "MiArchivo.pdf");
     } catch (e) {
       alert('Error al convertir imágenes: ' + e.message);
     }
@@ -253,12 +243,7 @@
         });
       });
 
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      downloadLink.href = URL.createObjectURL(blob);
-      downloadLink.style.display = 'inline-block';
-      downloadLink.textContent = 'Descargar PDF con números';
-      downloadLink.download = 'numbered.pdf';
+      downloadAndSavePDF(pdfDoc, "MiArchivo.pdf");
     } catch (e) {
       alert('Error al añadir números: ' + e.message);
     }
@@ -351,12 +336,7 @@ orderPagesBtn.addEventListener('click', async () => {
       newPdf.addPage(copiedPage);
     }
 
-    const pdfBytes = await newPdf.save();
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    downloadLink.href = URL.createObjectURL(blob);
-    downloadLink.style.display = 'inline-block';
-    downloadLink.textContent = 'Descargar PDF ordenado';
-    downloadLink.download = 'ordered.pdf';
+    downloadAndSavePDF(pdfDoc, "MiArchivo.pdf");
 
   } catch (err) {
     alert('Error al guardar PDF ordenado: ' + err.message);
@@ -372,6 +352,93 @@ orderPagesBtn.addEventListener('click', async () => {
       .catch(err => console.log('Error registrando SW:', err));
   }
 </script>
+
+<hr>
+<h2>Mis Archivos</h2>
+<ul id="fileList"></ul>
+
+// ===== IndexedDB Setup =====
+let db;
+const request = indexedDB.open("PDFStorage", 1);
+
+request.onupgradeneeded = function(e) {
+  db = e.target.result;
+  if (!db.objectStoreNames.contains("pdfs")) {
+    db.createObjectStore("pdfs", { keyPath: "id", autoIncrement: true });
+  }
+};
+
+request.onsuccess = function(e) {
+  db = e.target.result;
+  displayFiles();
+};
+
+request.onerror = function() {
+  console.error("Error al abrir IndexedDB");
+};
+
+// Guardar PDF en IndexedDB
+function savePDF(name, blob) {
+  const tx = db.transaction("pdfs", "readwrite");
+  const store = tx.objectStore("pdfs");
+  store.add({ name: name, blob: blob, date: new Date() });
+  tx.oncomplete = () => displayFiles();
+}
+
+// Mostrar archivos guardados
+function displayFiles() {
+  const list = document.getElementById("fileList");
+  list.innerHTML = "";
+  const tx = db.transaction("pdfs", "readonly");
+  const store = tx.objectStore("pdfs");
+  store.openCursor().onsuccess = function(e) {
+    const cursor = e.target.result;
+    if (cursor) {
+      const li = document.createElement("li");
+      li.textContent = `${cursor.value.name} (${cursor.value.date.toLocaleString()}) `;
+
+      const openBtn = document.createElement("button");
+      openBtn.textContent = "Abrir/Descargar";
+      openBtn.onclick = () => {
+        const url = URL.createObjectURL(cursor.value.blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = cursor.value.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "Borrar";
+      deleteBtn.onclick = () => {
+        const delTx = db.transaction("pdfs", "readwrite");
+        delTx.objectStore("pdfs").delete(cursor.value.id);
+        delTx.oncomplete = () => displayFiles();
+      };
+
+      li.appendChild(openBtn);
+      li.appendChild(deleteBtn);
+      list.appendChild(li);
+
+      cursor.continue();
+    }
+  };
+}
+
+// === Modificar tus funciones para guardar ===
+// Ejemplo: en vez de solo descargar, también guardamos:
+function downloadAndSavePDF(pdfDoc, fileName) {
+  pdfDoc.save().then(bytes => {
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    savePDF(fileName, blob); // Guarda en IndexedDB
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
 
 </body>
 </html>
