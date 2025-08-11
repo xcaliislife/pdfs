@@ -176,7 +176,7 @@
         copiedPages.forEach(page => mergedPdf.addPage(page));
       }
 
-   downloadAndSavePDF(pdfDoc, "MiArchivo.pdf");
+   downloadAndSavePDF(mergedPdf, "PDF_Unido.pdf");
     } catch (e) {
       alert('Error al unir PDFs: ' + e.message);
     }
@@ -336,7 +336,7 @@ orderPagesBtn.addEventListener('click', async () => {
       newPdf.addPage(copiedPage);
     }
 
-    downloadAndSavePDF(pdfDoc, "MiArchivo.pdf");
+    downloadAndSavePDF(newPdf, "PDF_Ordenado.pdf");
 
   } catch (err) {
     alert('Error al guardar PDF ordenado: ' + err.message);
