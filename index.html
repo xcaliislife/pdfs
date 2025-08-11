@@ -540,6 +540,66 @@ async function traducirTexto(texto) {
     return data.responseData.translatedText;
 }
 
+// Mueve esta función al inicio de tus scripts, antes de cualquier event listener
+async function downloadAndSavePDF(pdfDoc, fileName) {
+    try {
+        const bytes = await pdfDoc.save();
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        
+        // Guardar en IndexedDB
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction("pdfs", "readwrite");
+            const store = tx.objectStore("pdfs");
+            
+            const request = store.add({ 
+                name: fileName, 
+                blob: blob, 
+                date: new Date() 
+            });
+            
+            request.onsuccess = () => {
+                displayFiles(); // Actualizar la lista
+                
+                // Descargar archivo
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    resolve(true);
+                }, 100);
+            };
+            
+            request.onerror = (event) => {
+                console.error("Error al guardar:", event.target.error);
+                reject(event.target.error);
+            };
+        });
+        
+    } catch (error) {
+        console.error("Error en downloadAndSavePDF:", error);
+        
+        // Mostrar error al usuario
+        const errorDiv = document.createElement('div');
+        errorDiv.style = `position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+                        background: #ffebee; color: #d32f2f; padding: 15px; 
+                        border-radius: 5px; z-index: 1000; max-width: 80%;`;
+        errorDiv.innerHTML = `
+            <p><i class="fas fa-exclamation-circle"></i> <strong>Error al generar PDF</strong></p>
+            <p>${error.message}</p>
+        `;
+        document.body.appendChild(errorDiv);
+        
+        setTimeout(() => errorDiv.remove(), 5000);
+        return false;
+    }
+}
+
 async function getCustomFileName(defaultName) {
   return new Promise((resolve) => {
     const modal = document.createElement('div');
@@ -1120,49 +1180,7 @@ deleteBtn.title = "Borrar";
 // === Modificar tus funciones para guardar ===
 // Ejemplo: en vez de solo descargar, también guardamos:
 // === Función mejorada para guardar y descargar ===
-async function downloadAndSavePDF(pdfDoc, fileName) {
-  try {
-    const bytes = await pdfDoc.save();
-    const blob = new Blob([bytes], { type: "application/pdf" });
-    
-    // Guardar en IndexedDB
-    const tx = db.transaction("pdfs", "readwrite");
-    const store = tx.objectStore("pdfs");
-    await new Promise((resolve, reject) => {
-      const request = store.add({ 
-        name: fileName, 
-        blob: blob, 
-        date: new Date() 
-      });
-      request.onsuccess = () => {
-        displayFiles(); // Actualizar la lista
-        resolve();
-      };
-      request.onerror = (event) => {
-        console.error("Error al guardar:", event.target.error);
-        reject(event.target.error);
-      };
-    });
-    
-    // Descargar archivo
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
-    
-    return true;
-  } catch (error) {
-    console.error("Error en downloadAndSavePDF:", error);
-    alert("Error al generar el PDF: " + error.message);
-    return false;
-  }
-}
+
 
 // En tu evento click o donde prefieras
 document.getElementById('resumirBtn').addEventListener('click', async () => {
