@@ -308,6 +308,10 @@
 </div>
 
 <script>
+   if (!model && localStorage.getItem('tfjs_model')) {
+    model = await tf.loadLayersModel('indexeddb://tfjs_model');
+}
+
 async function getCustomFileName(defaultName) {
   return new Promise((resolve) => {
     const modal = document.createElement('div');
