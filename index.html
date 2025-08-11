@@ -355,7 +355,6 @@ input[type="range"]::-webkit-slider-thumb {
 
 let model;
 
-
 async function cargarModeloIA() {
     if (localStorage.getItem('modeloCargado')) {
         model = await tf.loadLayersModel('indexeddb://tfjs_model');
@@ -364,17 +363,14 @@ async function cargarModeloIA() {
         await model.save('indexeddb://tfjs_model');
         localStorage.setItem('modeloCargado', 'true');
     }
+    console.log("Modelo de IA cargado ✅");
 }
 
-// Llama esta función al iniciar tu app:
-    cargarModeloIA();
-let model; // Variable global para almacenar el modelo
-
-async function cargarModeloIA() {
-    console.log("Cargando modelo de IA...");
-    model = await universalSentenceEncoder.loadQnA();
-    console.log("Modelo cargado ✅");
-}
+// Actualiza el valor visual del slider
+document.getElementById('ratioResumen').addEventListener('input', function() {
+    document.getElementById('ratioValue').textContent = 
+        Math.round(this.value * 100) + '%';
+});
 
 async function traducirTexto(texto) {
     const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(texto)}&langpair=en|es`);
@@ -986,14 +982,15 @@ document.getElementById('resumirBtn').addEventListener('click', async () => {
         return;
     }
 
-    // Feedback al usuario
+    const ratio = parseFloat(document.getElementById('ratioResumen').value); // Obtiene el valor del slider
+    
     const resultadoDiv = document.getElementById('resumenResultado');
     resultadoDiv.innerHTML = '<p>Procesando... <i class="fas fa-spinner fa-spin"></i></p>';
     
     try {
-        const resumen = await resumirPDFConIA(pdfFile);
+        const resumen = await resumirPDFConIA(pdfFile, ratio); // Pasa el ratio
         resultadoDiv.innerHTML = `
-            <h4>Resumen generado:</h4>
+            <h4>Resumen (${Math.round(ratio * 100)}% del original):</h4>
             <div style="background:#f8f9fa; padding:10px; border-radius:5px; max-height:300px; overflow-y:auto;">
                 ${resumen}
             </div>
@@ -1005,13 +1002,6 @@ document.getElementById('resumirBtn').addEventListener('click', async () => {
         resultadoDiv.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
     }
 });
-
-function copiarAlPortapapeles() {
-    const texto = document.querySelector('#resumenResultado div').innerText;
-    navigator.clipboard.writeText(texto)
-        .then(() => alert('Resumen copiado 📋'))
-        .catch(err => alert('Error al copiar: ' + err));
-}
 
 </script>
 
