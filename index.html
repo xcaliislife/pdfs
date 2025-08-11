@@ -284,6 +284,27 @@ input[type="range"]::-webkit-slider-thumb {
   font-weight: bold;
   color: #007bff;
 }
+.btn-copiar {
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-copiar:hover {
+    background: #388e3c;
+}
+
+.btn-copiar i {
+    margin-right: 8px;
+}
   </style>
 </head>
 <body>
@@ -762,59 +783,55 @@ async function pdfToJpg(pdfFile) {
   return jpgBlobs;
 }
 
+async function resumirPDFConIA(pdfFile, ratioReduccion = 0.3) {
+    try {
+        // 1. Extraer texto (con verificación)
+        const textoCompleto = await extraerTextoDePDF(pdfFile);
+        console.log("Texto extraído:", textoCompleto.substring(0, 100) + "..."); // Debug
+        
+        if (!textoCompleto.trim()) {
+            throw new Error("El PDF no contiene texto legible o está protegido");
+        }
 
-async function resumirPDFConIA(pdfFile, ratioReduccion = 0.5) {
-    // 1. Extraer texto del PDF
-    const textoCompleto = await extraerTextoDePDF(pdfFile);
-    
-    // 2. Procesar con IA
-    const input = {
-        queries: ["Genera un resumen"],
-        responses: [textoCompleto]
-    };
-    
-    const embeddings = await model.embed(input);
-    const scores = tf.matMul(
-        embeddings['queryEmbedding'], 
-        embeddings['responseEmbedding'], 
-        false, 
-        true
-    ).dataSync();
-    
-    // 3. Filtrar oraciones relevantes
-    const oraciones = textoCompleto.split(/[.!?]+/);
-    return oraciones
-        .map((oracion, index) => ({
-            texto: oracion.trim(),
-            puntuacion: scores[index] || 0
-        }))
-        .filter(item => item.texto.length > 10)
-        .sort((a, b) => b.puntuacion - a.puntuacion)
-        .slice(0, Math.max(3, oraciones.length * ratioReduccion))
-        .map(item => item.texto)
-        .join('. ') + '.';
+        // 2. Procesar con IA
+        const input = {
+            queries: ["Resume este documento en español"],
+            responses: [textoCompleto]
+        };
+        
+        const embeddings = await model.embed(input);
+        const scores = tf.matMul(
+            embeddings['queryEmbedding'], 
+            embeddings['responseEmbedding'], 
+            false, 
+            true
+        ).dataSync();
+
+        // 3. Generar resumen
+        const oraciones = textoCompleto.split(/[.!?]+/).filter(o => o.trim().length > 10);
+        const resumen = oraciones
+            .map((oracion, index) => ({
+                texto: oracion.trim(),
+                puntuacion: scores[index] || 0
+            }))
+            .sort((a, b) => b.puntuacion - a.puntuacion)
+            .slice(0, Math.max(1, Math.floor(oraciones.length * ratioReduccion)))
+            .map(item => item.texto)
+            .join('. ') + '.';
+
+        console.log("Resumen generado:", resumen); // Debug
+        return resumen;
+        
+    } catch (error) {
+        console.error("Error en resumirPDFConIA:", error);
+        throw error;
+    }
 }
 
 // Función auxiliar para extraer texto
 async function extraerTextoDePDF(pdfFile) {
+    // Intenta primero con PDF.js (mejor para PDFs complejos)
     try {
-        const { PDFDocument } = PDFLib;
-        const pdfDoc = await PDFDocument.load(
-            await pdfFile.arrayBuffer(), 
-            { ignoreEncryption: true }
-        );
-        
-        let texto = '';
-        for (let i = 0; i < pdfDoc.getPageCount(); i++) {
-            const pagina = pdfDoc.getPage(i);
-            const textos = await pagina.getTextContent();
-            texto += textos.items.map(item => item.str).join(' ') + ' ';
-        }
-        return texto;
-        
-    } catch (e) {
-        console.error("Error con PDF-Lib:", e);
-        // Fallback a PDF.js si PDF-Lib falla
         const loadingTask = pdfjsLib.getDocument(await pdfFile.arrayBuffer());
         const pdf = await loadingTask.promise;
         let texto = '';
@@ -822,9 +839,23 @@ async function extraerTextoDePDF(pdfFile) {
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
-            texto += content.items.map(item => item.str).join(' ') + ' ';
+            texto += content.items.map(item => item.str).join(' ') + '\n';
         }
-        return texto;
+        return texto.trim();
+        
+    } catch (error) {
+        console.warn("PDF.js falló, intentando con PDF-Lib...", error);
+        // Fallback a PDF-Lib
+        const { PDFDocument } = PDFLib;
+        const pdfDoc = await PDFDocument.load(await pdfFile.arrayBuffer(), { ignoreEncryption: true });
+        let texto = '';
+        
+        for (let i = 0; i < pdfDoc.getPageCount(); i++) {
+            const pagina = pdfDoc.getPage(i);
+            const textos = await pagina.getTextContent();
+            texto += textos.items.map(item => item.str).join(' ') + '\n';
+        }
+        return texto.trim();
     }
 }
 </script>
@@ -994,36 +1025,65 @@ async function downloadAndSavePDF(pdfDoc, fileName) {
 
 // En tu evento click o donde prefieras
 document.getElementById('resumirBtn').addEventListener('click', async () => {
+    const pdfFile = document.getElementById('resumirBtn').addEventListener('click', async () => {
     const pdfFile = document.getElementById('pdfResumenInput').files[0];
     if (!pdfFile) {
         alert('Por favor selecciona un archivo PDF');
         return;
     }
-    if (texto === "") {
-    throw new Error("No se pudo extraer texto. El PDF puede estar protegido o ser una imagen.");
-}
 
-    const ratio = parseFloat(document.getElementById('ratioResumen').value); // Obtiene el valor del slider
-    
+    const ratio = parseFloat(document.getElementById('ratioResumen').value);
     const resultadoDiv = document.getElementById('resumenResultado');
-    resultadoDiv.innerHTML = '<p>Procesando... <i class="fas fa-spinner fa-spin"></i></p>';
     
     try {
-        const resumen = await resumirPDFConIA(pdfFile, ratio); // Pasa el ratio
+        resultadoDiv.innerHTML = `
+            <div style="
+                background: #f8f9fa;
+                padding: 15px;
+                border-radius: 5px;
+                margin: 10px 0;
+                text-align: center;
+            ">
+                <i class="fas fa-spinner fa-spin"></i> Procesando PDF...
+                <p style="font-size:12px; color:#666;">Esto puede tardar unos segundos</p>
+            </div>
+        `;
+        
+        const resumen = await resumirPDFConIA(pdfFile, ratio);
+        
         resultadoDiv.innerHTML = `
             <h4>Resumen (${Math.round(ratio * 100)}% del original):</h4>
-            <div style="background:#f8f9fa; padding:10px; border-radius:5px; max-height:300px; overflow-y:auto;">
-                ${resumen}
+            <div style="
+                background: #f8f9fa;
+                padding: 15px;
+                border-radius: 5px;
+                max-height: 300px;
+                overflow-y: auto;
+                border: 1px solid #ddd;
+                margin-bottom: 10px;
+            ">
+                ${resumen || "No se pudo generar el resumen (el PDF puede ser una imagen)"}
             </div>
-            <button onclick="copiarAlPortapapeles()" style="margin-top:10px;">
-                <i class="fas fa-copy"></i> Copiar
+            <button onclick="copiarAlPortapapeles()" class="btn-copiar">
+                <i class="fas fa-copy"></i> Copiar Resumen
             </button>
         `;
+        
     } catch (error) {
-        resultadoDiv.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+        resultadoDiv.innerHTML = `
+            <div style="
+                background: #ffebee;
+                color: #d32f2f;
+                padding: 15px;
+                border-radius: 5px;
+                border: 1px solid #ffcdd2;
+            ">
+                <i class="fas fa-exclamation-circle"></i> Error: ${error.message}
+                <p style="font-size:12px;">Prueba con otro archivo PDF</p>
+            </div>
+        `;
     }
 });
-
 </script>
 
 <div class="section">
