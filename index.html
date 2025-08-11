@@ -305,6 +305,29 @@ input[type="range"]::-webkit-slider-thumb {
 .btn-copiar i {
     margin-right: 8px;
 }
+
+/* Estilos para el estado de carga de IA */
+.btn-loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btn-error {
+    background-color: #ffebee !important;
+    color: #d32f2f !important;
+    cursor: not-allowed;
+}
+
+/* Animación de latido para indicar carga */
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.pulse-animation {
+    animation: pulse 1.5s infinite ease-in-out;
+}
   </style>
 </head>
 <body>
@@ -374,17 +397,135 @@ input[type="range"]::-webkit-slider-thumb {
 
 <script>
 
+// Estado global de la aplicación
+const appState = {
+    iaReady: false,
+    iaLoading: false,
+    iaError: null
+};
+
+// Inicialización de la aplicación
+async function initApp() {
+    try {
+        appState.iaLoading = true;
+        await cargarModeloIA();
+        appState.iaReady = true;
+    } catch (error) {
+        appState.iaError = error;
+        console.error("Error inicializando la aplicación:", error);
+    } finally {
+        appState.iaLoading = false;
+    }
+    
+    // Deshabilitar botones dependientes de IA hasta que esté lista
+    updateUIForIALoadingState();
+}
+
+// Actualizar UI según estado de IA
+function updateUIForIALoadingState() {
+    const iaDependentButtons = [
+        'resumirBtn'
+        // Añade aquí otros IDs de botones que dependan de la IA
+    ];
+    
+    iaDependentButtons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            if (appState.iaLoading) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando IA...';
+            } else if (appState.iaError) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error de IA';
+            } else {
+                btn.disabled = false;
+                // Restaurar texto original del botón
+                if (id === 'resumirBtn') {
+                    btn.textContent = 'Generar Resumen';
+                }
+            }
+        }
+    });
+}
+
+// Iniciar la aplicación cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar IndexedDB primero
+    const dbRequest = indexedDB.open("PDFStorage", 1);
+    
+    dbRequest.onsuccess = function() {
+        console.log("Base de datos lista");
+        initApp(); // Luego inicializar la IA
+    };
+    
+    dbRequest.onerror = function() {
+        console.error("Error inicializando base de datos");
+        initApp(); // Intentar igual aunque falle la DB
+    };
+});
+
 let model;
 
 async function cargarModeloIA() {
-    if (localStorage.getItem('modeloCargado')) {
-        model = await tf.loadLayersModel('indexeddb://tfjs_model');
-    } else {
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            font-size: 1.2em;
+        ">
+            <div style="text-align: center;">
+                <i class="fas fa-spinner fa-spin fa-3x"></i>
+                <p>Cargando modelo de IA...</p>
+                <p style="font-size: 0.8em;">(Esta operación solo se realiza una vez)</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loadingIndicator);
+
+    try {
+        // Verificar si ya está cargado en localStorage
+        if (localStorage.getItem('modeloCargado') === 'true') {
+            try {
+                model = await tf.loadLayersModel('indexeddb://tfjs_model');
+                console.log("Modelo cargado desde IndexedDB ✅");
+                loadingIndicator.remove();
+                return;
+            } catch (e) {
+                console.warn("No se pudo cargar de IndexedDB, cargando de nuevo...", e);
+            }
+        }
+
+        // Cargar modelo fresco si no está en caché
+        console.log("Cargando modelo Universal Sentence Encoder...");
         model = await universalSentenceEncoder.loadQnA();
-        await model.save('indexeddb://tfjs_model');
-        localStorage.setItem('modeloCargado', 'true');
+        
+        // Guardar en caché para próximas cargas
+        try {
+            await model.save('indexeddb://tfjs_model');
+            localStorage.setItem('modeloCargado', 'true');
+            console.log("Modelo guardado en IndexedDB ✅");
+        } catch (e) {
+            console.error("Error guardando modelo en IndexedDB:", e);
+        }
+        
+        loadingIndicator.remove();
+        console.log("Modelo de IA cargado con éxito ✅");
+    } catch (error) {
+        loadingIndicator.remove();
+        console.error("Error cargando modelo de IA:", error);
+        alert("Error crítico: No se pudo cargar el modelo de IA. Recarga la página o intenta más tarde.");
+        throw error;
     }
-    console.log("Modelo de IA cargado ✅");
 }
 
 // Actualiza el valor visual del slider
@@ -1025,12 +1166,24 @@ async function downloadAndSavePDF(pdfDoc, fileName) {
 
 // En tu evento click o donde prefieras
 document.getElementById('resumirBtn').addEventListener('click', async () => {
-    const pdfFile = document.getElementById('resumirBtn').addEventListener('click', async () => {
+    if (!appState.iaReady) {
+        if (appState.iaError) {
+            alert("El servicio de IA no está disponible. Por favor recarga la página.");
+            return;
+        }
+        alert("El modelo de IA aún se está cargando. Por favor espera...");
+        return;
+    }
+
     const pdfFile = document.getElementById('pdfResumenInput').files[0];
     if (!pdfFile) {
         alert('Por favor selecciona un archivo PDF');
         return;
     }
+
+    // Resto del código del event listener que te proporcioné anteriormente...
+    // [Mantén todo el código que ya está dentro del event listener]
+});
 
     const ratio = parseFloat(document.getElementById('ratioResumen').value);
     const resultadoDiv = document.getElementById('resumenResultado');
@@ -1049,6 +1202,11 @@ document.getElementById('resumirBtn').addEventListener('click', async () => {
             </div>
         `;
         
+        // Asegurarse que el modelo está cargado
+        if (!model) {
+            await cargarModeloIA();
+        }
+        
         const resumen = await resumirPDFConIA(pdfFile, ratio);
         
         resultadoDiv.innerHTML = `
@@ -1064,7 +1222,7 @@ document.getElementById('resumirBtn').addEventListener('click', async () => {
             ">
                 ${resumen || "No se pudo generar el resumen (el PDF puede ser una imagen)"}
             </div>
-            <button onclick="copiarAlPortapapeles()" class="btn-copiar">
+            <button onclick="copiarAlPortapeles()" class="btn-copiar">
                 <i class="fas fa-copy"></i> Copiar Resumen
             </button>
         `;
@@ -1082,8 +1240,20 @@ document.getElementById('resumirBtn').addEventListener('click', async () => {
                 <p style="font-size:12px;">Prueba con otro archivo PDF</p>
             </div>
         `;
+        console.error("Error al resumir PDF:", error);
     }
 });
+
+// Añade esta función para manejar la copia al portapapeles
+function copiarAlPortapeles() {
+    const resumenTexto = document.querySelector('#resumenResultado div').textContent;
+    navigator.clipboard.writeText(resumenTexto)
+        .then(() => alert('Resumen copiado al portapapeles'))
+        .catch(err => {
+            console.error('Error al copiar:', err);
+            alert('Error al copiar el resumen');
+        });
+}
 </script>
 
 <div class="section">
