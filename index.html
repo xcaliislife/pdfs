@@ -343,20 +343,6 @@ orderPagesBtn.addEventListener('click', async () => {
   }
 });
 
-</script>
-
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(() => console.log('Service Worker registrado'))
-      .catch(err => console.log('Error registrando SW:', err));
-  }
-</script>
-
-<hr>
-<h2>Mis Archivos</h2>
-<ul id="fileList"></ul>
-
 // ===== IndexedDB Setup =====
 let db;
 const request = indexedDB.open("PDFStorage", 1);
@@ -439,6 +425,22 @@ function downloadAndSavePDF(pdfDoc, fileName) {
     URL.revokeObjectURL(url);
   });
 }
+
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('Service Worker registrado'))
+      .catch(err => console.log('Error registrando SW:', err));
+  }
+</script>
+
+<hr>
+<h2>Mis Archivos</h2>
+<ul id="fileList"></ul>
+
+
 
 </body>
 </html>
