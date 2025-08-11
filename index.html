@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <title>Editor PDF básico</title>
   <link rel="manifest" href="manifest.json" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js">
+</script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+</script>
+
 <meta name="theme-color" content="#007bff" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -222,6 +228,20 @@
   outline: none;
   box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
 }
+/* Estilos para la previsualización de JPG */
+#jpgPreviewContainer {
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+#jpgPreviewContainer img {
+  max-height: 200px;
+  display: block;
+  margin-bottom: 10px;
+}
   </style>
 </head>
 <body>
@@ -242,6 +262,14 @@
     <div id="imageList"></div>
     <button id="imgToPdfBtn">Convertir imágenes a PDF</button>
   </div>
+
+  <!-- Dentro de <div id="app-container">, después de las otras secciones -->
+<div class="section">
+  <label for="pdfToJpgInput">Convertir PDF a imágenes JPG</label>
+  <input id="pdfToJpgInput" type="file" accept="application/pdf" />
+  <div id="jpgPreviewContainer" style="margin-top:10px;"></div>
+  <button id="pdfToJpgBtn">Generar JPGs</button>
+</div>
 
   <div class="section">
     <label for="singlePdfInput">Seleccionar un PDF para añadir números de página</label>
@@ -569,6 +597,81 @@ orderPagesBtn.addEventListener('click', async () => {
     alert('Error al guardar PDF ordenado: ' + err.message);
   }
 });
+
+// ========== PDF A JPG ========== //
+const pdfToJpgInput = document.getElementById('pdfToJpgInput');
+const pdfToJpgBtn = document.getElementById('pdfToJpgBtn');
+const jpgPreviewContainer = document.getElementById('jpgPreviewContainer');
+
+pdfToJpgBtn.addEventListener('click', async () => {
+  if (!pdfToJpgInput.files[0]) {
+    alert('Selecciona un archivo PDF primero.');
+    return;
+  }
+
+  try {
+    jpgPreviewContainer.innerHTML = '<p>Procesando... <i class="fas fa-spinner fa-spin"></i></p>';
+    const jpgBlobs = await pdfToJpg(pdfToJpgInput.files[0]);
+    
+    jpgPreviewContainer.innerHTML = '<h4>Previsualización:</h4>';
+    jpgBlobs.forEach((blob, index) => {
+      // Mostrar previsualización
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(blob);
+      img.style.maxWidth = '100%';
+      img.style.border = '1px solid #ddd';
+      img.style.margin = '5px';
+      jpgPreviewContainer.appendChild(img);
+      
+      // Botón de descarga
+      const downloadBtn = document.createElement('button');
+      downloadBtn.innerHTML = `<i class="fas fa-download"></i> Página ${index + 1}`;
+      downloadBtn.style.margin = '5px';
+      downloadBtn.onclick = () => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `pagina_${index + 1}.jpg`;
+        link.click();
+      };
+      jpgPreviewContainer.appendChild(downloadBtn);
+    });
+    
+  } catch (error) {
+    jpgPreviewContainer.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+  }
+});
+
+async function pdfToJpg(pdfFile) {
+  const loadingTask = pdfjsLib.getDocument(await pdfFile.arrayBuffer());
+  const pdf = await loadingTask.promise;
+  const jpgBlobs = [];
+  
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2.0 }); // Ajusta la escala para más calidad
+    
+    // Crear canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    
+    // Renderizar PDF en canvas
+    await page.render({
+      canvasContext: ctx,
+      viewport
+    }).promise;
+    
+    // Convertir a JPG
+    const blob = await new Promise(resolve => {
+      canvas.toBlob(resolve, 'image/jpeg', 0.92); // Calidad del 92%
+    });
+    
+    jpgBlobs.push(blob);
+  }
+  
+  return jpgBlobs;
+}
 
 </script>
 
