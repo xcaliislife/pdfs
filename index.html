@@ -261,6 +261,29 @@
     border-radius: 4px;
     cursor: pointer;
 }
+
+/* Estilo para el slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #007bff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+#ratioValue {
+  font-weight: bold;
+  color: #007bff;
+}
   </style>
 </head>
 <body>
@@ -303,13 +326,47 @@
   <button id="orderPagesBtn">Guardar PDF ordenado</button>
 </div>
 
+  <div class="section">
+  <label for="pdfResumenInput">Resumir PDF</label>
+  <input id="pdfResumenInput" type="file" accept="application/pdf" />
+
+<label for="ratioResumen" style="margin-top: 10px; display: block;">
+    Longitud del resumen: <span id="ratioValue">50%</span>
+  </label>
+  <input 
+    type="range" 
+    id="ratioResumen" 
+    min="0.1" 
+    max="0.9" 
+    step="0.1" 
+    value="0.5"
+    style="width: 100%; margin-bottom: 15px;"
+  >
+
+  <button id="resumirBtn">Generar Resumen</button>
+  <div id="resumenResultado"></div>
+</div>
+
   <a id="downloadLink" style="display:none;" download="output.pdf"></a>
 
 </div>
 
 <script>
-   if (!model && localStorage.getItem('tfjs_model')) {
-    model = await tf.loadLayersModel('indexeddb://tfjs_model');
+
+async function cargarModeloIA() {
+    if (localStorage.getItem('modeloCargado')) {
+        model = await tf.loadLayersModel('indexeddb://tfjs_model');
+    } else {
+        model = await universalSentenceEncoder.loadQnA();
+        await model.save('indexeddb://tfjs_model');
+        localStorage.setItem('modeloCargado', 'true');
+    }
+}
+
+async function traducirTexto(texto) {
+    const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(texto)}&langpair=en|es`);
+    const data = await response.json();
+    return data.responseData.translatedText;
 }
 
 async function getCustomFileName(defaultName) {
@@ -742,6 +799,9 @@ async function resumirPDFConIA(pdfFile, ratioReduccion = 0.5) {
         .join('. ') + '.';
     
     return resumen;
+     const ratio = document.getElementById('ratioResumen').value;
+const resumen = await resumirPDFConIA(pdfFile, ratio);
+
 }
 
 // Función auxiliar para extraer texto (si no la tienes)
