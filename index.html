@@ -210,6 +210,19 @@
     flex-direction: column;
   }
 }
+
+/* Animación para el modal */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Estilo para el input de nombre */
+#fileNameInput:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
   </style>
 </head>
 <body>
@@ -249,6 +262,71 @@
 </div>
 
 <script>
+async function getCustomFileName(defaultName) {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.style = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    `;
+    
+    modal.innerHTML = `
+      <div style="
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 400px;
+      ">
+        <h3 style="margin-top: 0">Nombre del archivo</h3>
+        <input 
+          type="text" 
+          id="fileNameInput" 
+          value="${defaultName}" 
+          style="
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+          "
+        >
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button id="cancelBtn" style="padding: 8px 15px; background: #f0f0f0;">Cancelar</button>
+          <button id="saveBtn" style="padding: 8px 15px; background: #007bff; color: white;">Guardar</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const input = modal.querySelector('#fileNameInput');
+    input.select();
+    
+    modal.querySelector('#saveBtn').addEventListener('click', () => {
+      const fileName = input.value.trim() || defaultName;
+      if (!fileName.endsWith('.pdf')) {
+        resolve(`${fileName}.pdf`);
+      } else {
+        resolve(fileName);
+      }
+      modal.remove();
+    });
+    
+    modal.querySelector('#cancelBtn').addEventListener('click', () => {
+      resolve(defaultName);
+      modal.remove();
+    });
+  });
+}
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
   // Elementos DOM
@@ -304,16 +382,18 @@
 <div class="columns">
 
 <div class="column">
+
     <!-- Sección Unir PDFs -->
     <div class="section">
   // Unir PDFs
   mergeBtn.addEventListener('click', async () => {
-    if (pdfFiles.length === 0) {
-      alert('Selecciona al menos un PDF para unir.');
-      return;
-    }
+  if (pdfFiles.length === 0) {
+    alert('Selecciona al menos un PDF para unir.');
+    return;
+  }
 
-    const mergedPdf = await PDFDocument.create();
+  const fileName = await getCustomFileName('PDF_Unido.pdf');
+  const mergedPdf = await PDFDocument.create();
 
     try {
       for (const file of pdfFiles) {
@@ -323,7 +403,7 @@
         copiedPages.forEach(page => mergedPdf.addPage(page));
       }
 
-   downloadAndSavePDF(mergedPdf, "PDF_Unido.pdf");
+   downloadAndSavePDF(mergedPdf, fileName);
     } catch (e) {
       alert('Error al unir PDFs: ' + e.message);
     }
@@ -333,13 +413,14 @@
     <!-- Sección Convertir imágenes -->
 <div class="section">
   // Convertir imágenes a PDF
-  imgToPdfBtn.addEventListener('click', async () => {
-    if (imageFiles.length === 0) {
-      alert('Selecciona al menos una imagen.');
-      return;
-    }
+ imgToPdfBtn.addEventListener('click', async () => {
+  if (imageFiles.length === 0) {
+    alert('Selecciona al menos una imagen.');
+    return;
+  }
 
-    const pdfDoc = await PDFDocument.create();
+  const fileName = await getCustomFileName('Imagenes_Convertidas.pdf');
+  const pdfDoc = await PDFDocument.create();
 
     try {
       for (const imgFile of imageFiles) {
@@ -362,7 +443,7 @@
         });
       }
 
-    downloadAndSavePDF(pdfDoc, "MiArchivo.pdf");
+    downloadAndSavePDF(pdfDoc, fileName);
     } catch (e) {
       alert('Error al convertir imágenes: ' + e.message);
     }
@@ -374,12 +455,15 @@
 <div class="column">
     <!-- Sección Numerar páginas -->
 <div class="section">
+
   // Añadir números de página
   addPageNumsBtn.addEventListener('click', async () => {
-    if (!singlePdfFile) {
-      alert('Selecciona un PDF para añadir números de página.');
-      return;
-    }
+  if (!singlePdfFile) {
+    alert('Selecciona un PDF para añadir números de página.');
+    return;
+  }
+
+  const fileName = await getCustomFileName('PDF_Con_Numeros.pdf');
 
     try {
       const arrayBuffer = await singlePdfFile.arrayBuffer();
@@ -399,7 +483,7 @@
         });
       });
 
-      downloadAndSavePDF(pdfDoc, "MiArchivo.pdf");
+      downloadAndSavePDF(pdfDoc, fileName);
     } catch (e) {
       alert('Error al añadir números: ' + e.message);
     }
@@ -485,6 +569,8 @@ orderPagesBtn.addEventListener('click', async () => {
     return;
   }
 
+  const fileName = await getCustomFileName('PDF_Ordenado.pdf');
+
   try {
     const arrayBuffer = await orderPdfFile.arrayBuffer();
     const originalPdf = await PDFDocument.load(arrayBuffer);
@@ -495,7 +581,7 @@ orderPagesBtn.addEventListener('click', async () => {
       newPdf.addPage(copiedPage);
     }
 
-    downloadAndSavePDF(newPdf, "PDF_Ordenado.pdf");
+    downloadAndSavePDF(newPdf, fileName);
 
   } catch (err) {
     alert('Error al guardar PDF ordenado: ' + err.message);
