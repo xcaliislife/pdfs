@@ -353,6 +353,9 @@ input[type="range"]::-webkit-slider-thumb {
 
 <script>
 
+let model;
+
+
 async function cargarModeloIA() {
     if (localStorage.getItem('modeloCargado')) {
         model = await tf.loadLayersModel('indexeddb://tfjs_model');
@@ -361,6 +364,16 @@ async function cargarModeloIA() {
         await model.save('indexeddb://tfjs_model');
         localStorage.setItem('modeloCargado', 'true');
     }
+}
+
+// Llama esta función al iniciar tu app:
+    cargarModeloIA();
+let model; // Variable global para almacenar el modelo
+
+async function cargarModeloIA() {
+    console.log("Cargando modelo de IA...");
+    model = await universalSentenceEncoder.loadQnA();
+    console.log("Modelo cargado ✅");
 }
 
 async function traducirTexto(texto) {
@@ -753,19 +766,9 @@ async function pdfToJpg(pdfFile) {
   return jpgBlobs;
 }
 
-let model; // Variable global para almacenar el modelo
-
-async function cargarModeloIA() {
-    console.log("Cargando modelo de IA...");
-    model = await universalSentenceEncoder.loadQnA();
-    console.log("Modelo cargado ✅");
-}
-
-// Llama esta función al iniciar tu app:
-cargarModeloIA();
 
 async function resumirPDFConIA(pdfFile, ratioReduccion = 0.5) {
-    // 1. Extraer texto del PDF (usa tu función existente)
+    // 1. Extraer texto del PDF
     const textoCompleto = await extraerTextoDePDF(pdfFile);
     
     // 2. Procesar con IA
@@ -774,10 +777,7 @@ async function resumirPDFConIA(pdfFile, ratioReduccion = 0.5) {
         responses: [textoCompleto]
     };
     
-    // 3. Generar embeddings (representación vectorial del texto)
     const embeddings = await model.embed(input);
-    
-    // 4. Calcular relevancia de cada oración
     const scores = tf.matMul(
         embeddings['queryEmbedding'], 
         embeddings['responseEmbedding'], 
@@ -785,26 +785,21 @@ async function resumirPDFConIA(pdfFile, ratioReduccion = 0.5) {
         true
     ).dataSync();
     
-    // 5. Filtrar oraciones más relevantes
+    // 3. Filtrar oraciones relevantes
     const oraciones = textoCompleto.split(/[.!?]+/);
-    const resumen = oraciones
+    return oraciones
         .map((oracion, index) => ({
             texto: oracion.trim(),
             puntuacion: scores[index] || 0
         }))
-        .filter(item => item.texto.length > 10) // Ignorar oraciones muy cortas
+        .filter(item => item.texto.length > 10)
         .sort((a, b) => b.puntuacion - a.puntuacion)
-        .slice(0, Math.max(3, oraciones.length * ratioReduccion)) // Top N oraciones
+        .slice(0, Math.max(3, oraciones.length * ratioReduccion))
         .map(item => item.texto)
         .join('. ') + '.';
-    
-    return resumen;
-     const ratio = document.getElementById('ratioResumen').value;
-const resumen = await resumirPDFConIA(pdfFile, ratio);
-
 }
 
-// Función auxiliar para extraer texto (si no la tienes)
+// Función auxiliar para extraer texto
 async function extraerTextoDePDF(pdfFile) {
     const { PDFDocument } = PDFLib;
     const pdfDoc = await PDFDocument.load(await pdfFile.arrayBuffer());
