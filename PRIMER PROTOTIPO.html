@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Editor PDF básico</title>
+  <link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#007bff" />
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 30px auto;
+      background: #f5f5f5;
+      color: #222;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .section {
+      margin-bottom: 25px;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.05);
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    input[type=file] {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 15px;
+      margin-right: 10px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #fileList, #imageList {
+      max-height: 120px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 8px;
+      background: #fafafa;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    #fileList div, #imageList div {
+      margin-bottom: 5px;
+    }
+    #downloadLink {
+      display: inline-block;
+      margin-top: 10px;
+      font-weight: bold;
+      text-decoration: none;
+      color: #28a745;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Editor PDF Básico</h2>
+
+  <div class="section">
+    <label for="pdfInput">Seleccionar PDFs para unir</label>
+    <input id="pdfInput" type="file" accept="application/pdf" multiple />
+    <div id="fileList"></div>
+    <button id="mergeBtn">Unir PDFs</button>
+  </div>
+
+  <div class="section">
+    <label for="imageInput">Seleccionar imágenes para convertir a PDF</label>
+    <input id="imageInput" type="file" accept="image/*" multiple />
+    <div id="imageList"></div>
+    <button id="imgToPdfBtn">Convertir imágenes a PDF</button>
+  </div>
+
+  <div class="section">
+    <label for="singlePdfInput">Seleccionar un PDF para añadir números de página</label>
+    <input id="singlePdfInput" type="file" accept="application/pdf" />
+    <button id="addPageNumsBtn">Añadir números de página</button>
+  </div>
+
+  <div class="section">
+  <label for="orderPdfInput">Seleccionar un PDF para ordenar páginas</label>
+  <input id="orderPdfInput" type="file" accept="application/pdf" />
+  <div id="pageOrderList" style="max-height:150px; overflow-y:auto; border:1px solid #ddd; padding:5px; margin-top:8px; background:#fafafa;"></div>
+  <button id="orderPagesBtn">Guardar PDF ordenado</button>
+</div>
+
+  <a id="downloadLink" style="display:none;" download="output.pdf"></a>
+
+<script>
+  const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+  // Elementos DOM
+  const pdfInput = document.getElementById('pdfInput');
+  const fileList = document.getElementById('fileList');
+  const mergeBtn = document.getElementById('mergeBtn');
+
+  const imageInput = document.getElementById('imageInput');
+  const imageList = document.getElementById('imageList');
+  const imgToPdfBtn = document.getElementById('imgToPdfBtn');
+
+  const singlePdfInput = document.getElementById('singlePdfInput');
+  const addPageNumsBtn = document.getElementById('addPageNumsBtn');
+
+  const downloadLink = document.getElementById('downloadLink');
+
+  // Variables para guardar archivos cargados
+  let pdfFiles = [];
+  let imageFiles = [];
+  let singlePdfFile = null;
+
+  // Cargar PDFs para unir
+  pdfInput.addEventListener('change', async (e) => {
+    pdfFiles = Array.from(e.target.files);
+    renderFileList(fileList, pdfFiles);
+  });
+
+  // Cargar imágenes para convertir
+  imageInput.addEventListener('change', async (e) => {
+    imageFiles = Array.from(e.target.files);
+    renderFileList(imageList, imageFiles);
+  });
+
+  // Cargar PDF único para números de página
+  singlePdfInput.addEventListener('change', async (e) => {
+    singlePdfFile = e.target.files[0] || null;
+  });
+
+  // Función para mostrar lista simple de archivos
+  function renderFileList(container, files) {
+    container.innerHTML = '';
+    if (files.length === 0) {
+      container.textContent = 'No hay archivos seleccionados.';
+      return;
+    }
+    files.forEach((file, i) => {
+      const div = document.createElement('div');
+      div.textContent = `${i+1}. ${file.name} (${Math.round(file.size/1024)} KB)`;
+      container.appendChild(div);
+    });
+  }
+
+  // Unir PDFs
+  mergeBtn.addEventListener('click', async () => {
+    if (pdfFiles.length === 0) {
+      alert('Selecciona al menos un PDF para unir.');
+      return;
+    }
+
+    const mergedPdf = await PDFDocument.create();
+
+    try {
+      for (const file of pdfFiles) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const copiedPages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+      }
+
+      const pdfBytes = await mergedPdf.save();
+      const blob = new Blob([pdfBytes], {type:'application/pdf'});
+      downloadLink.href = URL.createObjectURL(blob);
+      downloadLink.style.display = 'inline-block';
+      downloadLink.textContent = 'Descargar PDF unido';
+      downloadLink.download = 'merged.pdf';
+    } catch (e) {
+      alert('Error al unir PDFs: ' + e.message);
+    }
+  });
+
+  // Convertir imágenes a PDF
+  imgToPdfBtn.addEventListener('click', async () => {
+    if (imageFiles.length === 0) {
+      alert('Selecciona al menos una imagen.');
+      return;
+    }
+
+    const pdfDoc = await PDFDocument.create();
+
+    try {
+      for (const imgFile of imageFiles) {
+        const imgBytes = await imgFile.arrayBuffer();
+
+        let img;
+        // Intentar JPG, si falla intentar PNG
+        try {
+          img = await pdfDoc.embedJpg(imgBytes);
+        } catch {
+          img = await pdfDoc.embedPng(imgBytes);
+        }
+
+        const page = pdfDoc.addPage([img.width, img.height]);
+        page.drawImage(img, {
+          x: 0,
+          y: 0,
+          width: img.width,
+          height: img.height,
+        });
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], {type:'application/pdf'});
+      downloadLink.href = URL.createObjectURL(blob);
+      downloadLink.style.display = 'inline-block';
+      downloadLink.textContent = 'Descargar PDF de imágenes';
+      downloadLink.download = 'images.pdf';
+    } catch (e) {
+      alert('Error al convertir imágenes: ' + e.message);
+    }
+  });
+
+  // Añadir números de página
+  addPageNumsBtn.addEventListener('click', async () => {
+    if (!singlePdfFile) {
+      alert('Selecciona un PDF para añadir números de página.');
+      return;
+    }
+
+    try {
+      const arrayBuffer = await singlePdfFile.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(arrayBuffer);
+      const pages = pdfDoc.getPages();
+      const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+      pages.forEach((page, i) => {
+        const { width } = page.getSize();
+        const text = `${i+1}`;
+        page.drawText(text, {
+          x: width - 40,
+          y: 15,
+          size: 12,
+          font,
+          color: rgb(0, 0, 0),
+        });
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      downloadLink.href = URL.createObjectURL(blob);
+      downloadLink.style.display = 'inline-block';
+      downloadLink.textContent = 'Descargar PDF con números';
+      downloadLink.download = 'numbered.pdf';
+    } catch (e) {
+      alert('Error al añadir números: ' + e.message);
+    }
+  });
+
+      const orderPdfInput = document.getElementById('orderPdfInput');
+const pageOrderList = document.getElementById('pageOrderList');
+const orderPagesBtn = document.getElementById('orderPagesBtn');
+
+let orderPdfFile = null;
+let pageOrder = [];
+
+orderPdfInput.addEventListener('change', async (e) => {
+  orderPdfFile = e.target.files[0] || null;
+  pageOrder = [];
+  pageOrderList.innerHTML = '';
+
+  if (!orderPdfFile) return;
+
+  try {
+    const arrayBuffer = await orderPdfFile.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const pageCount = pdfDoc.getPageCount();
+
+    // Inicializa orden natural
+    pageOrder = Array.from({ length: pageCount }, (_, i) => i);
+
+    renderPageOrderList();
+  } catch (err) {
+    alert('Error cargando PDF para ordenar: ' + err.message);
+  }
+});
+
+function renderPageOrderList() {
+  pageOrderList.innerHTML = '';
+  pageOrder.forEach((pageIndex, i) => {
+    const div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.justifyContent = 'space-between';
+    div.style.padding = '4px 8px';
+    div.style.borderBottom = '1px solid #ddd';
+
+    const label = document.createElement('span');
+    label.textContent = `Página ${pageIndex + 1}`;
+
+    const controls = document.createElement('div');
+
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '↑';
+    upBtn.style.marginRight = '5px';
+    upBtn.disabled = (i === 0);
+    upBtn.addEventListener('click', () => {
+      if (i === 0) return;
+      [pageOrder[i - 1], pageOrder[i]] = [pageOrder[i], pageOrder[i - 1]];
+      renderPageOrderList();
+    });
+
+    const downBtn = document.createElement('button');
+    downBtn.textContent = '↓';
+    downBtn.disabled = (i === pageOrder.length - 1);
+    downBtn.addEventListener('click', () => {
+      if (i === pageOrder.length - 1) return;
+      [pageOrder[i + 1], pageOrder[i]] = [pageOrder[i], pageOrder[i + 1]];
+      renderPageOrderList();
+    });
+
+    controls.appendChild(upBtn);
+    controls.appendChild(downBtn);
+    div.appendChild(label);
+    div.appendChild(controls);
+
+    pageOrderList.appendChild(div);
+  });
+}
+
+orderPagesBtn.addEventListener('click', async () => {
+  if (!orderPdfFile) {
+    alert('Selecciona un PDF primero.');
+    return;
+  }
+
+  try {
+    const arrayBuffer = await orderPdfFile.arrayBuffer();
+    const originalPdf = await PDFDocument.load(arrayBuffer);
+    const newPdf = await PDFDocument.create();
+
+    for (const pageIndex of pageOrder) {
+      const [copiedPage] = await newPdf.copyPages(originalPdf, [pageIndex]);
+      newPdf.addPage(copiedPage);
+    }
+
+    const pdfBytes = await newPdf.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.style.display = 'inline-block';
+    downloadLink.textContent = 'Descargar PDF ordenado';
+    downloadLink.download = 'ordered.pdf';
+
+  } catch (err) {
+    alert('Error al guardar PDF ordenado: ' + err.message);
+  }
+});
+
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('Service Worker registrado'))
+      .catch(err => console.log('Error registrando SW:', err));
+  }
+</script>
+
+</body>
+</html>
