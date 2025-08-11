@@ -380,74 +380,14 @@ async function getCustomFileName(defaultName) {
   }
 
 <div class="columns">
-
 <div class="column">
-
     <!-- Sección Unir PDFs -->
     <div class="section">
-  // Unir PDFs
-  mergeBtn.addEventListener('click', async () => {
-  if (pdfFiles.length === 0) {
-    alert('Selecciona al menos un PDF para unir.');
-    return;
-  }
-
-  const fileName = await getCustomFileName('PDF_Unido.pdf');
-  const mergedPdf = await PDFDocument.create();
-
-    try {
-      for (const file of pdfFiles) {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        const copiedPages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
-        copiedPages.forEach(page => mergedPdf.addPage(page));
-      }
-
-   downloadAndSavePDF(mergedPdf, fileName);
-    } catch (e) {
-      alert('Error al unir PDFs: ' + e.message);
-    }
-  });
 </div>
 
     <!-- Sección Convertir imágenes -->
 <div class="section">
-  // Convertir imágenes a PDF
- imgToPdfBtn.addEventListener('click', async () => {
-  if (imageFiles.length === 0) {
-    alert('Selecciona al menos una imagen.');
-    return;
-  }
-
-  const fileName = await getCustomFileName('Imagenes_Convertidas.pdf');
-  const pdfDoc = await PDFDocument.create();
-
-    try {
-      for (const imgFile of imageFiles) {
-        const imgBytes = await imgFile.arrayBuffer();
-
-        let img;
-        // Intentar JPG, si falla intentar PNG
-        try {
-          img = await pdfDoc.embedJpg(imgBytes);
-        } catch {
-          img = await pdfDoc.embedPng(imgBytes);
-        }
-
-        const page = pdfDoc.addPage([img.width, img.height]);
-        page.drawImage(img, {
-          x: 0,
-          y: 0,
-          width: img.width,
-          height: img.height,
-        });
-      }
-
-    downloadAndSavePDF(pdfDoc, fileName);
-    } catch (e) {
-      alert('Error al convertir imágenes: ' + e.message);
-    }
-  });
+  
 </div>
 </div>
 
@@ -455,138 +395,11 @@ async function getCustomFileName(defaultName) {
 <div class="column">
     <!-- Sección Numerar páginas -->
 <div class="section">
-
-  // Añadir números de página
-  addPageNumsBtn.addEventListener('click', async () => {
-  if (!singlePdfFile) {
-    alert('Selecciona un PDF para añadir números de página.');
-    return;
-  }
-
-  const fileName = await getCustomFileName('PDF_Con_Numeros.pdf');
-
-    try {
-      const arrayBuffer = await singlePdfFile.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(arrayBuffer);
-      const pages = pdfDoc.getPages();
-      const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-      pages.forEach((page, i) => {
-        const { width } = page.getSize();
-        const text = `${i+1}`;
-        page.drawText(text, {
-          x: width - 40,
-          y: 15,
-          size: 12,
-          font,
-          color: rgb(0, 0, 0),
-        });
-      });
-
-      downloadAndSavePDF(pdfDoc, fileName);
-    } catch (e) {
-      alert('Error al añadir números: ' + e.message);
-    }
-  });
 </div>
 
     <!-- Sección Ordenar páginas -->
 <div class="section">
-      const orderPdfInput = document.getElementById('orderPdfInput');
-const pageOrderList = document.getElementById('pageOrderList');
-const orderPagesBtn = document.getElementById('orderPagesBtn');
-
-let orderPdfFile = null;
-let pageOrder = [];
-
-orderPdfInput.addEventListener('change', async (e) => {
-  orderPdfFile = e.target.files[0] || null;
-  pageOrder = [];
-  pageOrderList.innerHTML = '';
-
-  if (!orderPdfFile) return;
-
-  try {
-    const arrayBuffer = await orderPdfFile.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
-    const pageCount = pdfDoc.getPageCount();
-
-    // Inicializa orden natural
-    pageOrder = Array.from({ length: pageCount }, (_, i) => i);
-
-    renderPageOrderList();
-  } catch (err) {
-    alert('Error cargando PDF para ordenar: ' + err.message);
-  }
-});
-
-function renderPageOrderList() {
-  pageOrderList.innerHTML = '';
-  pageOrder.forEach((pageIndex, i) => {
-    const div = document.createElement('div');
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.justifyContent = 'space-between';
-    div.style.padding = '4px 8px';
-    div.style.borderBottom = '1px solid #ddd';
-
-    const label = document.createElement('span');
-    label.textContent = `Página ${pageIndex + 1}`;
-
-    const controls = document.createElement('div');
-
-    const upBtn = document.createElement('button');
-    upBtn.textContent = '↑';
-    upBtn.style.marginRight = '5px';
-    upBtn.disabled = (i === 0);
-    upBtn.addEventListener('click', () => {
-      if (i === 0) return;
-      [pageOrder[i - 1], pageOrder[i]] = [pageOrder[i], pageOrder[i - 1]];
-      renderPageOrderList();
-    });
-
-    const downBtn = document.createElement('button');
-    downBtn.textContent = '↓';
-    downBtn.disabled = (i === pageOrder.length - 1);
-    downBtn.addEventListener('click', () => {
-      if (i === pageOrder.length - 1) return;
-      [pageOrder[i + 1], pageOrder[i]] = [pageOrder[i], pageOrder[i + 1]];
-      renderPageOrderList();
-    });
-
-    controls.appendChild(upBtn);
-    controls.appendChild(downBtn);
-    div.appendChild(label);
-    div.appendChild(controls);
-
-    pageOrderList.appendChild(div);
-  });
-}
-
-orderPagesBtn.addEventListener('click', async () => {
-  if (!orderPdfFile) {
-    alert('Selecciona un PDF primero.');
-    return;
-  }
-
-  const fileName = await getCustomFileName('PDF_Ordenado.pdf');
-
-  try {
-    const arrayBuffer = await orderPdfFile.arrayBuffer();
-    const originalPdf = await PDFDocument.load(arrayBuffer);
-    const newPdf = await PDFDocument.create();
-
-    for (const pageIndex of pageOrder) {
-      const [copiedPage] = await newPdf.copyPages(originalPdf, [pageIndex]);
-      newPdf.addPage(copiedPage);
-    }
-
-    downloadAndSavePDF(newPdf, fileName);
-
-  } catch (err) {
-    alert('Error al guardar PDF ordenado: ' + err.message);
-  }
-});
+      
 </div>
 </div>
 </div>
@@ -761,8 +574,203 @@ async function downloadAndSavePDF(pdfDoc, fileName) {
 
 </script>
 
+<script>
+
+// Unir PDFs
+  mergeBtn.addEventListener('click', async () => {
+  if (pdfFiles.length === 0) {
+    alert('Selecciona al menos un PDF para unir.');
+    return;
+  }
+
+  const fileName = await getCustomFileName('PDF_Unido.pdf');
+  const mergedPdf = await PDFDocument.create();
+
+    try {
+      for (const file of pdfFiles) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const copiedPages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+      }
+
+   downloadAndSavePDF(mergedPdf, fileName);
+    } catch (e) {
+      alert('Error al unir PDFs: ' + e.message);
+    }
+  });
+
+// Convertir imágenes a PDF
+ imgToPdfBtn.addEventListener('click', async () => {
+  if (imageFiles.length === 0) {
+    alert('Selecciona al menos una imagen.');
+    return;
+  }
+
+  const fileName = await getCustomFileName('Imagenes_Convertidas.pdf');
+  const pdfDoc = await PDFDocument.create();
+
+    try {
+      for (const imgFile of imageFiles) {
+        const imgBytes = await imgFile.arrayBuffer();
+
+        let img;
+        // Intentar JPG, si falla intentar PNG
+        try {
+          img = await pdfDoc.embedJpg(imgBytes);
+        } catch {
+          img = await pdfDoc.embedPng(imgBytes);
+        }
+
+        const page = pdfDoc.addPage([img.width, img.height]);
+        page.drawImage(img, {
+          x: 0,
+          y: 0,
+          width: img.width,
+          height: img.height,
+        });
+      }
+
+    downloadAndSavePDF(pdfDoc, fileName);
+    } catch (e) {
+      alert('Error al convertir imágenes: ' + e.message);
+    }
+  });
+
+  // Añadir números de página
+  addPageNumsBtn.addEventListener('click', async () => {
+  if (!singlePdfFile) {
+    alert('Selecciona un PDF para añadir números de página.');
+    return;
+  }
+
+  const fileName = await getCustomFileName('PDF_Con_Numeros.pdf');
+
+    try {
+      const arrayBuffer = await singlePdfFile.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(arrayBuffer);
+      const pages = pdfDoc.getPages();
+      const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+      pages.forEach((page, i) => {
+        const { width } = page.getSize();
+        const text = `${i+1}`;
+        page.drawText(text, {
+          x: width - 40,
+          y: 15,
+          size: 12,
+          font,
+          color: rgb(0, 0, 0),
+        });
+      });
+
+      downloadAndSavePDF(pdfDoc, fileName);
+    } catch (e) {
+      alert('Error al añadir números: ' + e.message);
+    }
+  });
+
+const orderPdfInput = document.getElementById('orderPdfInput');
+const pageOrderList = document.getElementById('pageOrderList');
+const orderPagesBtn = document.getElementById('orderPagesBtn');
+
+let orderPdfFile = null;
+let pageOrder = [];
+
+orderPdfInput.addEventListener('change', async (e) => {
+  orderPdfFile = e.target.files[0] || null;
+  pageOrder = [];
+  pageOrderList.innerHTML = '';
+
+  if (!orderPdfFile) return;
+
+  try {
+    const arrayBuffer = await orderPdfFile.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const pageCount = pdfDoc.getPageCount();
+
+    // Inicializa orden natural
+    pageOrder = Array.from({ length: pageCount }, (_, i) => i);
+
+    renderPageOrderList();
+  } catch (err) {
+    alert('Error cargando PDF para ordenar: ' + err.message);
+  }
+});
+
+function renderPageOrderList() {
+  pageOrderList.innerHTML = '';
+  pageOrder.forEach((pageIndex, i) => {
+    const div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.justifyContent = 'space-between';
+    div.style.padding = '4px 8px';
+    div.style.borderBottom = '1px solid #ddd';
+
+    const label = document.createElement('span');
+    label.textContent = `Página ${pageIndex + 1}`;
+
+    const controls = document.createElement('div');
+
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '↑';
+    upBtn.style.marginRight = '5px';
+    upBtn.disabled = (i === 0);
+    upBtn.addEventListener('click', () => {
+      if (i === 0) return;
+      [pageOrder[i - 1], pageOrder[i]] = [pageOrder[i], pageOrder[i - 1]];
+      renderPageOrderList();
+    });
+
+    const downBtn = document.createElement('button');
+    downBtn.textContent = '↓';
+    downBtn.disabled = (i === pageOrder.length - 1);
+    downBtn.addEventListener('click', () => {
+      if (i === pageOrder.length - 1) return;
+      [pageOrder[i + 1], pageOrder[i]] = [pageOrder[i], pageOrder[i + 1]];
+      renderPageOrderList();
+    });
+
+    controls.appendChild(upBtn);
+    controls.appendChild(downBtn);
+    div.appendChild(label);
+    div.appendChild(controls);
+
+    pageOrderList.appendChild(div);
+  });
+}
+
+orderPagesBtn.addEventListener('click', async () => {
+  if (!orderPdfFile) {
+    alert('Selecciona un PDF primero.');
+    return;
+  }
+
+  const fileName = await getCustomFileName('PDF_Ordenado.pdf');
+
+  try {
+    const arrayBuffer = await orderPdfFile.arrayBuffer();
+    const originalPdf = await PDFDocument.load(arrayBuffer);
+    const newPdf = await PDFDocument.create();
+
+    for (const pageIndex of pageOrder) {
+      const [copiedPage] = await newPdf.copyPages(originalPdf, [pageIndex]);
+      newPdf.addPage(copiedPage);
+    }
+
+    downloadAndSavePDF(newPdf, fileName);
+
+  } catch (err) {
+    alert('Error al guardar PDF ordenado: ' + err.message);
+  }
+});
+
+
+</script>
+
 <div class="section">
-  <h2>Historial de Archivos Generados</h2>
+  <h2>Historial</h2>
   <div id="savedFilesContainer">
     <p id="noFilesMessage">No hay archivos guardados todavía.</p>
     <ul id="savedFilesList" class="files-history"></ul>
