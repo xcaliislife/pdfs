@@ -714,17 +714,49 @@ deleteBtn.title = "Borrar";
 
 // === Modificar tus funciones para guardar ===
 // Ejemplo: en vez de solo descargar, también guardamos:
-function downloadAndSavePDF(pdfDoc, fileName) {
-  pdfDoc.save().then(bytes => {
+// === Función mejorada para guardar y descargar ===
+async function downloadAndSavePDF(pdfDoc, fileName) {
+  try {
+    const bytes = await pdfDoc.save();
     const blob = new Blob([bytes], { type: "application/pdf" });
-    savePDF(fileName, blob); // Guarda en IndexedDB
+    
+    // Guardar en IndexedDB
+    const tx = db.transaction("pdfs", "readwrite");
+    const store = tx.objectStore("pdfs");
+    await new Promise((resolve, reject) => {
+      const request = store.add({ 
+        name: fileName, 
+        blob: blob, 
+        date: new Date() 
+      });
+      request.onsuccess = () => {
+        displayFiles(); // Actualizar la lista
+        resolve();
+      };
+      request.onerror = (event) => {
+        console.error("Error al guardar:", event.target.error);
+        reject(event.target.error);
+      };
+    });
+    
+    // Descargar archivo
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = fileName;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
-  });
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    
+    return true;
+  } catch (error) {
+    console.error("Error en downloadAndSavePDF:", error);
+    alert("Error al generar el PDF: " + error.message);
+    return false;
+  }
 }
 
 </script>
