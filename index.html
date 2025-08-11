@@ -797,17 +797,35 @@ async function resumirPDFConIA(pdfFile, ratioReduccion = 0.5) {
 
 // Función auxiliar para extraer texto
 async function extraerTextoDePDF(pdfFile) {
-    const { PDFDocument } = PDFLib;
-    const pdfDoc = await PDFDocument.load(await pdfFile.arrayBuffer());
-    let texto = '';
-    
-    for (let i = 0; i < pdfDoc.getPageCount(); i++) {
-        const pagina = pdfDoc.getPage(i);
-        const textos = await pagina.getTextContent();
-        texto += textos.items.map(item => item.str).join(' ') + ' ';
+    try {
+        const { PDFDocument } = PDFLib;
+        const pdfDoc = await PDFDocument.load(
+            await pdfFile.arrayBuffer(), 
+            { ignoreEncryption: true }
+        );
+        
+        let texto = '';
+        for (let i = 0; i < pdfDoc.getPageCount(); i++) {
+            const pagina = pdfDoc.getPage(i);
+            const textos = await pagina.getTextContent();
+            texto += textos.items.map(item => item.str).join(' ') + ' ';
+        }
+        return texto;
+        
+    } catch (e) {
+        console.error("Error con PDF-Lib:", e);
+        // Fallback a PDF.js si PDF-Lib falla
+        const loadingTask = pdfjsLib.getDocument(await pdfFile.arrayBuffer());
+        const pdf = await loadingTask.promise;
+        let texto = '';
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            texto += content.items.map(item => item.str).join(' ') + ' ';
+        }
+        return texto;
     }
-    
-    return texto;
 }
 </script>
 
@@ -981,6 +999,9 @@ document.getElementById('resumirBtn').addEventListener('click', async () => {
         alert('Por favor selecciona un archivo PDF');
         return;
     }
+    if (texto === "") {
+    throw new Error("No se pudo extraer texto. El PDF puede estar protegido o ser una imagen.");
+}
 
     const ratio = parseFloat(document.getElementById('ratioResumen').value); // Obtiene el valor del slider
     
