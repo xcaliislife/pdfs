@@ -5,6 +5,7 @@
   <title>Editor PDF básico</title>
   <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#007bff" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
   <style>
     body {
@@ -442,8 +443,6 @@ function displayFiles() {
     }
     
     noFilesMsg.style.display = "none";
-    
-    // Ordenar por fecha (más reciente primero)
     files.sort((a, b) => new Date(b.date) - new Date(a.date));
     
     files.forEach(file => {
@@ -453,22 +452,26 @@ function displayFiles() {
       fileInfo.className = "file-info";
       fileInfo.innerHTML = `
         <strong>${file.name}</strong>
-        <span class="file-date">${new Date(file.date).toLocaleString()}</span>
+        <span class="file-date">${new Date(file.date).toLocaleString()} · ${Math.round(file.blob.size/1024)} KB</span>
       `;
       
       const actions = document.createElement("div");
       actions.className = "file-actions";
       
+      // Botón Abrir
       const openBtn = document.createElement("button");
-      openBtn.textContent = "Abrir";
+      openBtn.innerHTML = '<i class="fas fa-eye"></i> Abrir';
+      openBtn.className = "icon-btn";
       openBtn.onclick = () => {
         const url = URL.createObjectURL(file.blob);
         window.open(url, '_blank');
         URL.revokeObjectURL(url);
       };
       
+      // Botón Descargar
       const downloadBtn = document.createElement("button");
-      downloadBtn.textContent = "Descargar";
+      downloadBtn.innerHTML = '<i class="fas fa-download"></i> Descargar';
+      downloadBtn.className = "icon-btn";
       downloadBtn.onclick = () => {
         const url = URL.createObjectURL(file.blob);
         const a = document.createElement("a");
@@ -478,9 +481,10 @@ function displayFiles() {
         URL.revokeObjectURL(url);
       };
       
+      // Botón Borrar
       const deleteBtn = document.createElement("button");
-      deleteBtn.textContent = "Borrar";
-      deleteBtn.className = "delete-btn";
+      deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Borrar';
+      deleteBtn.className = "icon-btn delete-btn";
       deleteBtn.onclick = () => {
         if (confirm(`¿Seguro que quieres borrar "${file.name}"?`)) {
           const delTx = db.transaction("pdfs", "readwrite");
