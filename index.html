@@ -71,6 +71,47 @@
       text-decoration: none;
       color: #28a745;
     }
+/* Estilos para el historial de archivos */
+.files-history {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.files-history li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid #e0e0e0;
+  background: white;
+}
+
+.files-history li:hover {
+  background-color: #f8f9fa;
+}
+
+.file-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.file-info {
+  flex-grow: 1;
+}
+
+.file-date {
+  font-size: 0.85em;
+  color: #666;
+  margin-left: 10px;
+}
+
+#noFilesMessage {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+}
   </style>
 </head>
 <body>
@@ -385,41 +426,76 @@ function savePDF(name, blob) {
 
 // Mostrar archivos guardados
 function displayFiles() {
-  const list = document.getElementById("fileList");
+  const list = document.getElementById("savedFilesList");
+  const noFilesMsg = document.getElementById("noFilesMessage");
   list.innerHTML = "";
+  
   const tx = db.transaction("pdfs", "readonly");
   const store = tx.objectStore("pdfs");
-  store.openCursor().onsuccess = function(e) {
-    const cursor = e.target.result;
-    if (cursor) {
+  
+  store.getAll().onsuccess = function(e) {
+    const files = e.target.result;
+    
+    if (files.length === 0) {
+      noFilesMsg.style.display = "block";
+      return;
+    }
+    
+    noFilesMsg.style.display = "none";
+    
+    // Ordenar por fecha (más reciente primero)
+    files.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    files.forEach(file => {
       const li = document.createElement("li");
-      li.textContent = `${cursor.value.name} (${cursor.value.date.toLocaleString()}) `;
-
+      
+      const fileInfo = document.createElement("div");
+      fileInfo.className = "file-info";
+      fileInfo.innerHTML = `
+        <strong>${file.name}</strong>
+        <span class="file-date">${new Date(file.date).toLocaleString()}</span>
+      `;
+      
+      const actions = document.createElement("div");
+      actions.className = "file-actions";
+      
       const openBtn = document.createElement("button");
-      openBtn.textContent = "Abrir/Descargar";
+      openBtn.textContent = "Abrir";
       openBtn.onclick = () => {
-        const url = URL.createObjectURL(cursor.value.blob);
+        const url = URL.createObjectURL(file.blob);
+        window.open(url, '_blank');
+        URL.revokeObjectURL(url);
+      };
+      
+      const downloadBtn = document.createElement("button");
+      downloadBtn.textContent = "Descargar";
+      downloadBtn.onclick = () => {
+        const url = URL.createObjectURL(file.blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = cursor.value.name;
+        a.download = file.name;
         a.click();
         URL.revokeObjectURL(url);
       };
-
+      
       const deleteBtn = document.createElement("button");
       deleteBtn.textContent = "Borrar";
+      deleteBtn.className = "delete-btn";
       deleteBtn.onclick = () => {
-        const delTx = db.transaction("pdfs", "readwrite");
-        delTx.objectStore("pdfs").delete(cursor.value.id);
-        delTx.oncomplete = () => displayFiles();
+        if (confirm(`¿Seguro que quieres borrar "${file.name}"?`)) {
+          const delTx = db.transaction("pdfs", "readwrite");
+          delTx.objectStore("pdfs").delete(file.id);
+          delTx.oncomplete = () => displayFiles();
+        }
       };
-
-      li.appendChild(openBtn);
-      li.appendChild(deleteBtn);
+      
+      actions.appendChild(openBtn);
+      actions.appendChild(downloadBtn);
+      actions.appendChild(deleteBtn);
+      li.appendChild(fileInfo);
+      li.appendChild(actions);
       list.appendChild(li);
-
-      cursor.continue();
-    }
+    });
   };
 }
 
@@ -440,11 +516,13 @@ function downloadAndSavePDF(pdfDoc, fileName) {
 
 </script>
 
-<hr>
-<h2>Mis Archivos</h2>
-<ul id="fileList"></ul>
-
-
+<div class="section">
+  <h2>Historial de Archivos Generados</h2>
+  <div id="savedFilesContainer">
+    <p id="noFilesMessage">No hay archivos guardados todavía.</p>
+    <ul id="savedFilesList" class="files-history"></ul>
+  </div>
+</div>
 
 </body>
 </html>
