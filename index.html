@@ -296,24 +296,20 @@
 /* Animación de entrada más pronunciada */
 @keyframes toastIn {
   from {
-    top: -70px;
     opacity: 0;
-    transform: translateX(-50%) scale(0.92);
+    transform: translateX(-50%) translateY(-30px) scale(0.9);
   }
   to {
-    top: 25px;
-    opacity: 0.96;
-    transform: translateX(-50%) scale(1);
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
   }
 }
 
 /* Animación de salida más suave */
 @keyframes toastOut {
   to {
-    top: 20px;
     opacity: 0;
-    transform: translateX(-50%) scale(0.96);
-    visibility: hidden;
+    transform: translateX(-50%) translateY(-20px) scale(0.95);
   }
 }
 
@@ -324,6 +320,11 @@
   backdrop-filter: blur(14px);
 }
 @media (max-width: 600px) {
+  .toast {
+  animation: 
+    toastIn 0.42s ease-out forwards,
+    toastOut 0.48s ease-in 4.5s forwards;
+}
   .toast {
     min-width: 85vw;
     max-width: 90vw;
@@ -955,19 +956,17 @@ function showToast(message, type = 'success') {
 
   document.body.appendChild(toast);
 
-  // Cierre automático mejorado
-  let autoClose = setTimeout(() => {
-    toast.style.animation = 'toastOut 0.48s forwards';
-    setTimeout(() => toast.remove(), 500);
-  }, 4500);
+  // Dentro de showToast() - REEMPLAZAR ESTO
+let autoClose = setTimeout(() => {
+  toast.style.animation = 'toastOut 0.48s forwards';
+  setTimeout(() => toast.remove(), 500);
+}, 4500);
 
-  // Cierre manual con clic
-  toast.addEventListener('click', () => {
-    clearTimeout(autoClose);
-    toast.style.animation = 'toastOut 0.36s forwards';
-    setTimeout(() => toast.remove(), 360);
-  });
-}
+toast.addEventListener('click', () => {
+  clearTimeout(autoClose);
+  toast.style.animation = 'toastOut 0.36s forwards';
+  setTimeout(() => toast.remove(), 360);
+});
 
 </script>
 
