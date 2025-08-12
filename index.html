@@ -410,19 +410,29 @@ const appState = {
     iaError: null
 };
 
-// Iniciar la aplicación cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-    // Inicializar IndexedDB primero
+let db; // Variable global para la base de datos
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Inicializar IndexedDB
     const dbRequest = indexedDB.open("PDFStorage", 1);
     
-    dbRequest.onsuccess = function() {
-        console.log("Base de datos lista");
-        initApp(); // Luego inicializar la IA
+    dbRequest.onupgradeneeded = function(e) {
+        db = e.target.result;
+        if (!db.objectStoreNames.contains("pdfs")) {
+            db.createObjectStore("pdfs", { keyPath: "id", autoIncrement: true });
+        }
+    };
+    
+    dbRequest.onsuccess = function(e) {
+        db = e.target.result;
+        displayFiles();
+        initApp(); // Iniciar el resto de la aplicación
     };
     
     dbRequest.onerror = function() {
-        console.error("Error inicializando base de datos");
-        initApp(); // Intentar igual aunque falle la DB
+        console.error("Error al abrir IndexedDB");
+        // Puedes continuar sin IndexedDB en modo "solo descarga"
+        initApp();
     };
 });
 
@@ -442,79 +452,6 @@ let model;
   const addPageNumsBtn = document.getElementById('addPageNumsBtn');
 
   const downloadLink = document.getElementById('downloadLink');
-
-
-
-BASIC ×××××××××××××××××××××××
-
-
-
-function copiarAlPortapeles() {
-    const resumenTexto = document.querySelector('#resumenResultado div').textContent;
-    navigator.clipboard.writeText(resumenTexto)
-        .then(() => alert('Resumen copiado al portapapeles'))
-        .catch(err => {
-            console.error('Error al copiar:', err);
-            alert('Error al copiar el resumen');
-        });
-}
-
-// Actualiza el valor visual del slider
-document.getElementById('ratioResumen').addEventListener('input', function() {
-    document.getElementById('ratioValue').textContent = 
-        Math.round(this.value * 100) + '%';
-});
-
-async function traducirTexto(texto) {
-    const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(texto)}&langpair=en|es`);
-    const data = await response.json();
-    return data.responseData.translatedText;
-}
-
-
-
-PRINCIPAL ××××××××××××××××××××××××××××
-
-// Guardar PDF en IndexedDB
-function savePDF(name, blob) {
-  const tx = db.transaction("pdfs", "readwrite");
-  const store = tx.objectStore("pdfs");
-  store.add({ name: name, blob: blob, date: new Date() });
-  tx.oncomplete = () => displayFiles();
-}
-
-// Mostrar archivos guardados
-function displayFiles() {
-  const list = document.getElementById("savedFilesList");
-  const noFilesMsg = document.getElementById("noFilesMessage");
-  list.innerHTML = "";
-  
-  const tx = db.transaction("pdfs", "readonly");
-  const store = tx.objectStore("pdfs");
-  
-  store.getAll().onsuccess = function(e) {
-    const files = e.target.result;
-    
-    if (files.length === 0) {
-      noFilesMsg.style.display = "block";
-      return;
-    }
-    
-    noFilesMsg.style.display = "none";
-    files.sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    files.forEach(file => {
-      const li = document.createElement("li");
-      
-      const fileInfo = document.createElement("div");
-      fileInfo.className = "file-info";
-      fileInfo.innerHTML = `
-        <strong>${file.name}</strong>
-        <span class="file-date">${new Date(file.date).toLocaleString()} · ${Math.round(file.blob.size/1024)} KB</span>
-      `;
-      
-      const actions = document.createElement("div");
-      actions.className = "file-actions";
 
 async function downloadAndSavePDF(pdfDoc, fileName) {
     try {
@@ -574,6 +511,81 @@ async function downloadAndSavePDF(pdfDoc, fileName) {
         return false;
     }
 }
+
+
+
+BASIC ×××××××××××××××××××××××
+
+
+
+function copiarAlPortapeles() {
+    const resumenTexto = document.querySelector('#resumenResultado div').textContent;
+    navigator.clipboard.writeText(resumenTexto)
+        .then(() => alert('Resumen copiado al portapapeles'))
+        .catch(err => {
+            console.error('Error al copiar:', err);
+            alert('Error al copiar el resumen');
+        });
+}
+
+// Actualiza el valor visual del slider
+document.getElementById('ratioResumen').addEventListener('input', function() {
+    document.getElementById('ratioValue').textContent = 
+        Math.round(this.value * 100) + '%';
+});
+
+async function traducirTexto(texto) {
+    const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(texto)}&langpair=en|es`);
+    const data = await response.json();
+    return data.responseData.translatedText;
+}
+
+
+
+PRINCIPAL ××××××××××××××××××××××××××××
+
+
+
+// Guardar PDF en IndexedDB
+function savePDF(name, blob) {
+  const tx = db.transaction("pdfs", "readwrite");
+  const store = tx.objectStore("pdfs");
+  store.add({ name: name, blob: blob, date: new Date() });
+  tx.oncomplete = () => displayFiles();
+}
+
+// Mostrar archivos guardados
+function displayFiles() {
+  const list = document.getElementById("savedFilesList");
+  const noFilesMsg = document.getElementById("noFilesMessage");
+  list.innerHTML = "";
+  
+  const tx = db.transaction("pdfs", "readonly");
+  const store = tx.objectStore("pdfs");
+  
+  store.getAll().onsuccess = function(e) {
+    const files = e.target.result;
+    
+    if (files.length === 0) {
+      noFilesMsg.style.display = "block";
+      return;
+    }
+    
+    noFilesMsg.style.display = "none";
+    files.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    files.forEach(file => {
+      const li = document.createElement("li");
+      
+      const fileInfo = document.createElement("div");
+      fileInfo.className = "file-info";
+      fileInfo.innerHTML = `
+        <strong>${file.name}</strong>
+        <span class="file-date">${new Date(file.date).toLocaleString()} · ${Math.round(file.blob.size/1024)} KB</span>
+      `;
+      
+      const actions = document.createElement("div");
+      actions.className = "file-actions";
 
 
   async function pdfToJpg(pdfFile) {
@@ -1093,6 +1105,13 @@ START ××××××××××××××××××××××××
 
 // Inicialización de la aplicación
 async function initApp() {
+    mergeBtn.addEventListener('click', mergePDFs);
+    imgToPdfBtn.addEventListener('click', convertImagesToPDF);
+    addPageNumsBtn.addEventListener('click', addPageNumbers);
+    orderPagesBtn.addEventListener('click', reorderPDFPages);
+    pdfToJpgBtn.addEventListener('click', convertPDFToJPG);
+    resumirBtn.addEventListener('click', summarizePDF);
+}
     try {
         appState.iaLoading = true;
         await cargarModeloIA();
