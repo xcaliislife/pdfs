@@ -3,16 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Editor PDF Básico</title>
-  <link rel="manifest" href="manifest.json"></link>
-
+  <link rel="manifest" href="manifest.json">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js">
 </script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 </script>
-
 <meta name="theme-color" content="#007bff">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2, user-scalable=yes">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
   <style>
@@ -347,14 +345,14 @@
 
   <div class="section">
     <label for="pdfInput">Seleccionar PDFs para unir</label>
-    <input id="pdfInput" type="file" accept="application/pdf" multiple />
+    <input id="pdfInput" type="file" accept="application/pdf" multiple>
     <div id="fileList"></div>
     <button id="mergeBtn">Unir PDFs</button>
   </div>
 
   <div class="section">
     <label for="imageInput">Seleccionar imágenes para convertir a PDF</label>
-    <input id="imageInput" type="file" accept="image/*" multiple />
+    <input id="imageInput" type="file" accept="image/*" multiple>
     <div id="imageList"></div>
     <button id="imgToPdfBtn">Convertir imágenes a PDF</button>
   </div>
@@ -362,20 +360,20 @@
   <!-- Dentro de <div id="app-container">, después de las otras secciones -->
 <div class="section">
   <label for="pdfToJpgInput">Convertir PDF a imágenes JPG</label>
-  <input id="pdfToJpgInput" type="file" accept="application/pdf" />
+  <input id="pdfToJpgInput" type="file" accept="application/pdf">
   <div id="jpgPreviewContainer" style="margin-top:10px;"></div>
   <button id="pdfToJpgBtn">Generar JPGs</button>
 </div>
 
   <div class="section">
     <label for="singlePdfInput">Seleccionar un PDF para añadir números de página</label>
-    <input id="singlePdfInput" type="file" accept="application/pdf" />
+    <input id="singlePdfInput" type="file" accept="application/pdf">
     <button id="addPageNumsBtn">Añadir números de página</button>
   </div>
 
   <div class="section">
   <label for="orderPdfInput">Seleccionar un PDF para ordenar páginas</label>
-  <input id="orderPdfInput" type="file" accept="application/pdf" />
+  <input id="orderPdfInput" type="file" accept="application/pdf">
   <div id="pageOrderList" style="max-height:150px; overflow-y:auto; border:1px solid #ddd; padding:5px; margin-top:8px; background:#fafafa;"></div>
   <button id="orderPagesBtn">Guardar PDF ordenado</button>
 </div>
