@@ -136,7 +136,7 @@
     .historial-header {
   font-family: 'Poppins', sans-serif;
   margin-bottom: 10px;
-  background: #c4c4c4;
+  background: #999999;
   padding: 15px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -173,7 +173,7 @@
 }
 
 .file-date {
-  font-size: 8px;
+  font-size: 10px;
   color: #666;
   margin-left: 10px;
 }
@@ -356,14 +356,14 @@
   <h2>Editor PDF Básico</h2>
 
   <div class="section">
-    <label for="pdfInput">Seleccionar PDFs para unir</label>
+    <label for="pdfInput">Unir PDFs</label>
     <input id="pdfInput" type="file" accept="application/pdf" multiple>
     <div id="fileList"></div>
     <button id="mergeBtn">Unir PDFs</button>
   </div>
 
   <div class="section">
-    <label for="imageInput">Seleccionar imágenes para convertir a PDF</label>
+    <label for="imageInput">Imagen a PDF</label>
     <input id="imageInput" type="file" accept="image/*" multiple>
     <div id="imageList"></div>
     <button id="imgToPdfBtn">Convertir imágenes a PDF</button>
@@ -371,20 +371,20 @@
 
   <!-- Dentro de <div id="app-container">, después de las otras secciones -->
 <div class="section">
-  <label for="pdfToJpgInput">Convertir PDF a imágenes JPG</label>
+  <label for="pdfToJpgInput">PDF a JPG</label>
   <input id="pdfToJpgInput" type="file" accept="application/pdf">
   <div id="jpgPreviewContainer" style="margin-top:10px;"></div>
   <button id="pdfToJpgBtn">Generar JPGs</button>
 </div>
 
   <div class="section">
-    <label for="singlePdfInput">Seleccionar un PDF para añadir números de página</label>
+    <label for="singlePdfInput">Enumerar páginas</label>
     <input id="singlePdfInput" type="file" accept="application/pdf">
     <button id="addPageNumsBtn">Añadir números de página</button>
   </div>
 
   <div class="section">
-  <label for="orderPdfInput">Seleccionar un PDF para ordenar páginas</label>
+  <label for="orderPdfInput">Reordenar PDF</label>
   <input id="orderPdfInput" type="file" accept="application/pdf">
   <div id="pageOrderList" style="max-height:150px; overflow-y:auto; border:1px solid #ddd; padding:5px; margin-top:8px; background:#fafafa;"></div>
   <button id="orderPagesBtn">Guardar PDF ordenado</button>
