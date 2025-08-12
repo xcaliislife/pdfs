@@ -386,6 +386,58 @@
 </div>
 
 <script>
+
+async function downloadAndSavePDF(pdfDoc, fileName) {
+  try {
+    const bytes = await pdfDoc.save();
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    
+    // Guardar en IndexedDB
+    const tx = db.transaction("pdfs", "readwrite");
+    const store = tx.objectStore("pdfs");
+    
+    await new Promise((resolve, reject) => {
+      const request = store.add({ 
+        name: fileName, 
+        blob: blob, 
+        date: new Date() 
+      });
+      request.onsuccess = () => resolve();
+      request.onerror = (e) => reject(e.target.error);
+    });
+    
+    // Descargar archivo
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      displayFiles(); // Actualizar el historial
+      showToast(`${fileName} descargado correctamente`); // Nueva notificación
+    }, 100);
+    
+  } catch (error) {
+    console.error("Error:", error);
+    showToast(`Error al generar el archivo: ${error.message}`, true);
+    
+    // Modo de respaldo para descarga sin historial
+    if (error.message.includes("Base de datos")) {
+      const bytes = await pdfDoc.save();
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      showToast(`⚠️ Descargado sin historial: ${fileName}`);
+    }
+  }
+}
+
 async function getCustomFileName(defaultName) {
   return new Promise((resolve) => {
     const modal = document.createElement('div');
@@ -886,57 +938,6 @@ deleteBtn.title = "Borrar";
       list.appendChild(li);
     });
   };
-}
-
-async function downloadAndSavePDF(pdfDoc, fileName) {
-  try {
-    const bytes = await pdfDoc.save();
-    const blob = new Blob([bytes], { type: "application/pdf" });
-    
-    // Guardar en IndexedDB
-    const tx = db.transaction("pdfs", "readwrite");
-    const store = tx.objectStore("pdfs");
-    
-    await new Promise((resolve, reject) => {
-      const request = store.add({ 
-        name: fileName, 
-        blob: blob, 
-        date: new Date() 
-      });
-      request.onsuccess = () => resolve();
-      request.onerror = (e) => reject(e.target.error);
-    });
-    
-    // Descargar archivo
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      displayFiles(); // Actualizar el historial
-      showToast(`${fileName} descargado correctamente`); // Nueva notificación
-    }, 100);
-    
-  } catch (error) {
-    console.error("Error:", error);
-    showToast(`Error al generar el archivo: ${error.message}`, true);
-    
-    // Modo de respaldo para descarga sin historial
-    if (error.message.includes("Base de datos")) {
-      const bytes = await pdfDoc.save();
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-      showToast(`⚠️ Descargado sin historial: ${fileName}`);
-    }
-  }
 }
 
 function showToast(message, type = 'success') {
