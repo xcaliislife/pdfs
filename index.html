@@ -243,39 +243,77 @@
   margin-bottom: 10px;
 }
 
-/* Notificaciones tipo Toast */
+/* Notificaciones estilo vidrio - Mejorado */
 .toast {
   position: fixed;
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: #4CAF50;
+  background: rgba(46, 125, 50, 0.85); /* Verde con transparencia */
+  backdrop-filter: blur(10px); /* Efecto vidrio importante */
+  -webkit-backdrop-filter: blur(10px); /* Soporte para Safari */
   color: white;
-  padding: 12px 24px;
-  border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  padding: 18px 36px; /* Más grande para formato 4:3 */
+  border-radius: 12px; /* Bordes más redondeados */
+  box-shadow: 
+    0 8px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.1); /* Borde sutil */
   z-index: 1000;
   display: flex;
   align-items: center;
-  gap: 12px;
-  animation: slideIn 0.3s, fadeOut 0.5s 2.5s forwards;
+  gap: 18px;
+  min-width: 300px; /* Proporción 4:3 */
+  max-width: 400px;
+  animation: slideIn 0.4s, fadeOut 0.6s 4.8s forwards; /* 5s total */
+  font-size: 1.15em;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.15); /* Borde de vidrio */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); /* Mejor contraste */
 }
 
 .toast.error {
-  background: #f44336;
+  background: rgba(198, 40, 40, 0.85); /* Rojo con transparencia */
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .toast i {
-  font-size: 1.2em;
+  font-size: 1.6em;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3)); /* Sombra para contraste */
 }
 
+/* Animaciones mejoradas */
 @keyframes slideIn {
-  from { top: -50px; opacity: 0; }
-  to { top: 20px; opacity: 1; }
+  from { 
+    top: -80px; 
+    opacity: 0;
+    transform: translateX(-50%) scale(0.95);
+  }
+  to { 
+    top: 20px; 
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
 }
 
 @keyframes fadeOut {
-  to { opacity: 0; visibility: hidden; }
+  to { 
+    opacity: 0; 
+    visibility: hidden;
+    transform: translateX(-50%) scale(0.98);
+  }
+}
+
+/* Efecto hover para pausar la desaparición */
+.toast:hover {
+  animation-play-state: paused;
+}
+@media (max-width: 600px) {
+  .toast {
+    min-width: 80%;
+    max-width: 90%;
+    padding: 14px 24px;
+    font-size: 1em;
+  }
 }
   </style>
 </head>
@@ -878,19 +916,30 @@ async function downloadAndSavePDF(pdfDoc, fileName) {
 }
 
 function showToast(message, isError = false) {
+  // Eliminar notificaciones previas para evitar duplicados
+  document.querySelectorAll('.toast').forEach(toast => toast.remove());
+  
   const toast = document.createElement('div');
   toast.className = `toast ${isError ? 'error' : ''}`;
   toast.innerHTML = `
-    <i class="fas fa-${isError ? 'exclamation-circle' : 'check-circle'}"></i>
+    <i class="fas fa-${isError ? 'exclamation-triangle' : 'check-circle'}"></i>
     <span>${message}</span>
   `;
   
   document.body.appendChild(toast);
   
-  // Elimina la notificación después de la animación
-  setTimeout(() => {
-    toast.remove();
-  }, 3000);
+  // Cierre automático después de 5.4 segundos (4.8s visible + 0.6s animación)
+  const autoClose = setTimeout(() => {
+    toast.style.animation = 'fadeOut 0.6s forwards';
+    setTimeout(() => toast.remove(), 600);
+  }, 4800);
+  
+  // Cierre manual al hacer clic (opcional)
+  toast.addEventListener('click', () => {
+    clearTimeout(autoClose);
+    toast.style.animation = 'fadeOut 0.4s forwards';
+    setTimeout(() => toast.remove(), 400);
+  });
 }
 
 </script>
