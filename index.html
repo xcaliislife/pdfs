@@ -1202,94 +1202,142 @@ async function extractTextFromPdf(pdfFile) {
 /**
  * Genera un resumen de calidad del texto
  */
+// ===== FUNCIÓN PRINCIPAL MEJORADA ===== //
 async function generateQualitySummary(text) {
-  // 1. Preprocesamiento
-  const sentences = text.split(/[.!?]+/)
-    .filter(s => s.trim().length > 30)
-    .map(s => s.trim());
+    try {
+        // 1. Tokenización mejorada
+        const sentences = tokenizeSentences(text);
+        if (sentences.length < 3) return text.substring(0, 300) + '...'; // Fallback para textos muy cortos
 
-  // 2. Palabras clave temáticas
-  const themeKeywords = [
-    'problema', 'solución', 'efecto', 'causa', 'método', 
-    'recomendación', 'importante', 'conclusión', 'resultado',
-    'estudio', 'investigación', 'descubrimiento', 'principal',
-    'objetivo', 'encontró', 'demostró', 'evidencia'
-  ];
-
-  // 3. Ponderación de oraciones
-  const weightedSentences = sentences.map(sentence => {
-    let score = 0;
-    
-    // Por posición
-    const position = sentences.indexOf(sentence);
-    if (position === 0) score += 3; // Primera oración
-    if (position === sentences.length - 1) score += 2; // Última oración
-    
-    // Por palabras temáticas
-    themeKeywords.forEach(keyword => {
-      if (sentence.toLowerCase().includes(keyword)) score += 2;
-    });
-    
-    // Por longitud (50-150 caracteres es ideal)
-    if (sentence.length > 50 && sentence.length < 150) score += 1;
-    
-    return { sentence, score };
-  });
-
-  // 4. Seleccionar mejores oraciones
-  const topSentences = weightedSentences
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .map(item => item.sentence + '.');
-
-  // 5. Construir resumen coherente
-  return topSentences.join(' ');
+        // 2. Preprocesamiento
+        const processedSentences = sentences.map(preprocessSentence);
+        
+        // 3. Análisis de frecuencia
+        const wordFrequencies = calculateWordFrequencies(processedSentences);
+        
+        // 4. Ponderación y selección
+        const summarySentences = selectSummarySentences(sentences, processedSentences, wordFrequencies);
+        
+        // 5. Construcción del resumen
+        return buildCoherentSummary(summarySentences);
+        
+    } catch (error) {
+        console.error("Error generando resumen:", error);
+        // Fallback: primeras 3 oraciones
+        const fallback = text.split(/(?<=[.!?])\s+/g).slice(0, 3).join(' ');
+        return fallback.length > 10 ? fallback : text.substring(0, 150) + '...';
+    }
 }
 
-/**
- * Extrae conceptos clave relevantes
- */
-async function extractRelevantConcepts(text) {
-  // 1. Lista de palabras vacías personalizada
-  const stopWords = new Set([
-    'para', 'puede', 'como', 'que', 'son', 'también', 
-    'este', 'esta', 'pero', 'por', 'los', 'las', 'del',
-    'más', 'menos', 'bien', 'hay', 'fue', 'ser', 'ha'
-  ]);
+// ===== FUNCIONES DE APOYO OPTIMIZADAS ===== //
 
-  // 2. Categorías temáticas
-  const themeCategories = {
-    problemas: ['enfermedad', 'riesgo', 'peligro', 'alergia', 'contaminación', 'daño'],
-    soluciones: ['prevención', 'eliminar', 'control', 'método', 'tratamiento', 'solución'],
-    elementos: ['humedad', 'alimento', 'refugio', 'grieta', 'temperatura', 'desechos']
-  };
-
-  // 3. Procesar palabras
-  const words = text.toLowerCase()
-    .match(/\b[\wáéíóúñ]+\b/g)
-    .filter(word => 
-      word.length > 4 && 
-      !stopWords.has(word) &&
-      !/\d/.test(word)
-    );
-
-  // 4. Ponderación
-  const wordScores = {};
-  words.forEach(word => {
-    if (!wordScores[word]) wordScores[word] = 0;
-    wordScores[word]++;
+function tokenizeSentences(text) {
+    // Versión mejorada que maneja abreviaciones comunes
+    const abbrev = ['Sr.', 'Sra.', 'Dr.', 'Dra.', 'Ing.', 'Lic.', 'pág.', 'ej.'];
+    let tempText = text;
     
-    // Bonus por categoría temática
-    Object.values(themeCategories).forEach(category => {
-      if (category.includes(word)) wordScores[word] += 3;
+    // Proteger abreviaciones para que no dividan oraciones
+    abbrev.forEach(ab => {
+        tempText = tempText.replace(new RegExp(ab, 'g'), ab.replace('.', '@@'));
     });
-  });
+    
+    // Dividir oraciones
+    const sentences = tempText.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÜÑ])/g)
+        .map(s => s.replace(/@@/g, '.'))
+        .filter(s => s.trim().length > 10); // Filtrar oraciones muy cortas
+    
+    return sentences.length > 0 ? sentences : [text.substring(0, 200)];
+}
 
-  // 5. Seleccionar y ordenar
-  return Object.entries(wordScores)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([word]) => word);
+function preprocessSentence(sentence) {
+    // Normalización más completa
+    return sentence.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // Eliminar acentos
+        .replace(/[.,!?;:"'()¿¡]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function calculateWordFrequencies(sentences) {
+    const wordFrequencies = {};
+    const stopWords = new Set([
+        'para','puede','como','que','son','también','este','esta','pero','por',
+        'los','las','del','más','menos','bien','hay','fue','ser','ha','un','una',
+        'y','o','a','de','en','con','sin','al','se','es','su','sus','le','les','me',
+        'te','nos','mi','tu','aquí','allí','cuando','donde','cómo','porque','antes',
+        'después','mientras','aunque','sino','excepto','hacia','bajo','sobre','entre'
+    ]);
+
+    sentences.forEach(sentence => {
+        const words = sentence.split(' ');
+        words.forEach(word => {
+            if (word.length > 3 && !stopWords.has(word)) {
+                wordFrequencies[word] = (wordFrequencies[word] || 0) + 1;
+            }
+        });
+    });
+    
+    return wordFrequencies;
+}
+
+function selectSummarySentences(originalSentences, processedSentences, wordFrequencies) {
+    const MIN_SENTENCE_LENGTH = 40;
+    const MAX_SENTENCE_LENGTH = 180;
+    const MAX_SUMMARY_SENTENCES = 5;
+    
+    return originalSentences
+        .map((original, index) => {
+            const processed = processedSentences[index];
+            let score = 0;
+            
+            // Puntuación por frecuencia de palabras clave
+            const words = processed.split(' ');
+            words.forEach(word => {
+                score += wordFrequencies[word] || 0;
+            });
+            
+            // Puntuación por posición
+            if (index === 0) score += 3; // Primera oración
+            if (index === originalSentences.length - 1) score += 2; // Última oración
+            
+            // Puntuación por pistas léxicas
+            const cuePhrases = [
+                'en conclusión', 'por lo tanto', 'en resumen', 
+                'los resultados muestran', 'es importante destacar',
+                'este estudio revela', 'en definitiva', 'podemos concluir'
+            ];
+            
+            cuePhrases.forEach(phrase => {
+                if (original.toLowerCase().includes(phrase)) score += 5;
+            });
+            
+            // Puntuación por longitud
+            if (original.length > MIN_SENTENCE_LENGTH && 
+                original.length < MAX_SENTENCE_LENGTH) {
+                score += 1;
+            }
+            
+            return { original, score, index };
+        })
+        .filter(item => item.score > 0) // Eliminar oraciones sin relevancia
+        .sort((a, b) => b.score - a.score)
+        .slice(0, MAX_SUMMARY_SENTENCES)
+        .sort((a, b) => a.index - b.index); // Restaurar orden original
+}
+
+function buildCoherentSummary(selectedSentences) {
+    // Unir oraciones y limpiar formato
+    let summary = selectedSentences.map(item => item.original).join(' ');
+    
+    // Limpieza final
+    summary = summary.replace(/\s+/g, ' ')
+        .replace(/([.!?])\s*(?=[A-ZÁÉÍÓÚÜÑ])/g, '$1 ')
+        .replace(/\s([,;:])/g, '$1');
+    
+    // Asegurar que termina con punto
+    if (!/[.!?]$/.test(summary)) summary += '.';
+    
+    return summary;
 }
 
 /**
