@@ -336,64 +336,7 @@
     to { top: 15px; }
   }
 }
-/* Contenedor del título "Historial" */
-.historial-header {
-  background-color: rgba(245, 245, 245, 0.85); /* Gris muy suave */
-  backdrop-filter: blur(10px); /* Efecto vidrio */
-  padding: 12px 16px;
-  border-radius: 12px 12px 0 0;
-  margin-bottom: 1px; /* Para que pegue con los items */
-  font-size: 0.9em;
-  color: #333;
-}
 
-/* Items de archivos - Diseño tipo Apple */
-.file-item {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  padding: 12px 16px;
-  background-color: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-/* Contenedor de metadatos (fecha y tamaño) */
-.file-meta {
-  grid-column: 2;
-  font-size: 0.75em;
-  color: #666;
-  margin-top: 4px;
-  display: flex;
-  gap: 12px;
-}
-
-/* Contenedor de acciones (íconos) */
-.file-actions {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-/* Ajuste para el nombre del archivo */
-.file-name {
-  font-weight: 500;
-  grid-column: 2;
-}
-.file-item:hover {
-  background-color: rgba(255, 255, 255, 0.9);
-  transition: background-color 0.3s ease;
-}
-
-.action-icon {
-  opacity: 0.6;
-  transition: all 0.2s ease;
-}
-
-.action-icon:hover {
-  opacity: 1;
-  transform: scale(1.1);
-}
   </style>
 </head>
 <body>
@@ -1024,22 +967,20 @@ toast.addEventListener('click', () => {
 
 </script>
 
-<div class="historial-header">Historial</div>
+<div class="section">
 
-<div class="file-item">
-  <i class="fas fa-file-pdf"></i>
-  <div>
-    <div class="file-name">gaga.pdf</div>
-    <div class="file-meta">
-      <span>12/8/2025, 12:09:40 a.m.</span>
-      <span>168 KB</span>
-    </div>
-  </div>
-  <div class="file-actions">
-    <i class="fas fa-download action-icon"></i>
-    <i class="fas fa-trash action-icon"></i>
-    <i class="fas fa-share action-icon"></i>
-  </div>
+<h2>Historial</h2>
+
+<div id="savedFilesContainer">
+
+<p id="noFilesMessage">No hay archivos guardados
+
+todavía.</p>
+
+<ul id="savedFilesList" class="files-history"></ul>
+
+</div>
+
 </div>
 
   <div class="columns">
