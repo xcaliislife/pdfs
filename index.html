@@ -274,13 +274,13 @@
 
 /* Versión éxito (verde transparente) */
 .toast.success {
-  background: rgba(46, 125, 50, 0.82);
+  background: rgba(77, 255, 0, 0.55);
   border: 1px solid rgba(100, 255, 100, 0.15);
 }
 
 /* Versión error (rojo transparente) */
 .toast.error {
-  background: rgba(198, 40, 40, 0.82);
+  background: rgba(255, 0, 0, 0.55);
   border: 1px solid rgba(255, 100, 100, 0.15);
 }
 
@@ -915,12 +915,12 @@ async function downloadAndSavePDF(pdfDoc, fileName) {
     setTimeout(() => {
       URL.revokeObjectURL(url);
       displayFiles(); // Actualizar el historial
-      showToast(`✅ ${fileName} descargado correctamente`); // Nueva notificación
+      showToast(`${fileName} descargado correctamente`); // Nueva notificación
     }, 100);
     
   } catch (error) {
     console.error("Error:", error);
-    showToast(`❌ Error al generar el archivo: ${error.message}`, true);
+    showToast(`Error al generar el archivo: ${error.message}`, true);
     
     // Modo de respaldo para descarga sin historial
     if (error.message.includes("Base de datos")) {
