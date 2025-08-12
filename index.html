@@ -243,76 +243,98 @@
   margin-bottom: 10px;
 }
 
-/* Notificaciones estilo vidrio - Mejorado */
+/* Notificación estilo vidrio con alta transparencia */
 .toast {
   position: fixed;
-  top: 20px;
+  top: 25px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(46, 125, 50, 0.85); /* Verde con transparencia */
-  backdrop-filter: blur(10px); /* Efecto vidrio importante */
-  -webkit-backdrop-filter: blur(10px); /* Soporte para Safari */
-  color: white;
-  padding: 18px 36px; /* Más grande para formato 4:3 */
-  border-radius: 12px; /* Bordes más redondeados */
+  background: rgba(38, 50, 56, 0.78); /* Fondo oscuro muy transparente */
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  color: #fff;
+  padding: 16px 32px;
+  border-radius: 10px;
   box-shadow: 
-    0 8px 16px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.1); /* Borde sutil */
-  z-index: 1000;
+    0 8px 32px rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  z-index: 10000;
   display: flex;
   align-items: center;
-  gap: 18px;
-  min-width: 300px; /* Proporción 4:3 */
-  max-width: 400px;
-  animation: slideIn 0.4s, fadeOut 0.6s 4.8s forwards; /* 5s total */
-  font-size: 1.15em;
+  gap: 14px;
+  min-width: 280px;
+  max-width: 380px;
+  animation: toastIn 0.42s ease-out, toastOut 0.48s ease-in 4.5s forwards;
+  font-size: 1.1em;
   font-weight: 500;
-  border: 1px solid rgba(255, 255, 255, 0.15); /* Borde de vidrio */
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); /* Mejor contraste */
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  opacity: 0.96; /* Control adicional de transparencia */
 }
 
+/* Versión éxito (verde transparente) */
+.toast.success {
+  background: rgba(46, 125, 50, 0.82);
+  border: 1px solid rgba(100, 255, 100, 0.15);
+}
+
+/* Versión error (rojo transparente) */
 .toast.error {
-  background: rgba(198, 40, 40, 0.85); /* Rojo con transparencia */
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(198, 40, 40, 0.82);
+  border: 1px solid rgba(255, 100, 100, 0.15);
 }
 
+/* Iconos con brillo para contraste */
 .toast i {
-  font-size: 1.6em;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3)); /* Sombra para contraste */
+  font-size: 1.5em;
+  filter: 
+    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4))
+    brightness(1.1);
 }
 
-/* Animaciones mejoradas */
-@keyframes slideIn {
-  from { 
-    top: -80px; 
+/* Animación de entrada más pronunciada */
+@keyframes toastIn {
+  from {
+    top: -70px;
     opacity: 0;
-    transform: translateX(-50%) scale(0.95);
+    transform: translateX(-50%) scale(0.92);
   }
-  to { 
-    top: 20px; 
-    opacity: 1;
+  to {
+    top: 25px;
+    opacity: 0.96;
     transform: translateX(-50%) scale(1);
   }
 }
 
-@keyframes fadeOut {
-  to { 
-    opacity: 0; 
+/* Animación de salida más suave */
+@keyframes toastOut {
+  to {
+    top: 20px;
+    opacity: 0;
+    transform: translateX(-50%) scale(0.96);
     visibility: hidden;
-    transform: translateX(-50%) scale(0.98);
   }
 }
 
-/* Efecto hover para pausar la desaparición */
+/* Pausa la animación al interactuar */
 .toast:hover {
   animation-play-state: paused;
+  opacity: 0.98 !important;
+  backdrop-filter: blur(14px);
 }
 @media (max-width: 600px) {
   .toast {
-    min-width: 80%;
-    max-width: 90%;
-    padding: 14px 24px;
-    font-size: 1em;
+    min-width: 85vw;
+    max-width: 90vw;
+    padding: 14px 20px;
+    font-size: 1.05em;
+    border-radius: 8px;
+    top: 15px;
+  }
+  
+  @keyframes toastIn {
+    from { top: -60px; }
+    to { top: 15px; }
   }
 }
   </style>
@@ -915,30 +937,34 @@ async function downloadAndSavePDF(pdfDoc, fileName) {
   }
 }
 
-function showToast(message, isError = false) {
-  // Eliminar notificaciones previas para evitar duplicados
-  document.querySelectorAll('.toast').forEach(toast => toast.remove());
+function showToast(message, type = 'success') {
+  // Eliminar notificaciones previas
+  document.querySelectorAll('.toast').forEach(t => t.remove());
   
   const toast = document.createElement('div');
-  toast.className = `toast ${isError ? 'error' : ''}`;
+  toast.className = `toast ${type}`;
   toast.innerHTML = `
-    <i class="fas fa-${isError ? 'exclamation-triangle' : 'check-circle'}"></i>
+    <i class="fas fa-${
+      type === 'error' ? 'exclamation-triangle' : 
+      type === 'warning' ? 'exclamation-circle' : 
+      'check-circle'
+    }"></i>
     <span>${message}</span>
   `;
-  
+
   document.body.appendChild(toast);
-  
-  // Cierre automático después de 5.4 segundos (4.8s visible + 0.6s animación)
-  const autoClose = setTimeout(() => {
-    toast.style.animation = 'fadeOut 0.6s forwards';
-    setTimeout(() => toast.remove(), 600);
-  }, 4800);
-  
-  // Cierre manual al hacer clic (opcional)
+
+  // Cierre automático mejorado
+  let autoClose = setTimeout(() => {
+    toast.style.animation = 'toastOut 0.48s forwards';
+    setTimeout(() => toast.remove(), 500);
+  }, 4500);
+
+  // Cierre manual con clic
   toast.addEventListener('click', () => {
     clearTimeout(autoClose);
-    toast.style.animation = 'fadeOut 0.4s forwards';
-    setTimeout(() => toast.remove(), 400);
+    toast.style.animation = 'toastOut 0.36s forwards';
+    setTimeout(() => toast.remove(), 360);
   });
 }
 
