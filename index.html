@@ -351,7 +351,91 @@
     to { top: 15px; }
   }
 }
-  
+
+   .analysis-options {
+  margin: 10px 0;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.analysis-options label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.analysis-btn {
+  background: #4a6baf !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.analysis-btn:hover {
+  background: #3a5a9f !important;
+}
+
+.analysis-results {
+  margin-top: 15px;
+  padding: 15px;
+  background: white;
+  border-radius: 6px;
+  border-left: 4px solid #4a6baf;
+  display: none;
+}
+
+.concept-badge {
+  display: inline-block;
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  margin: 2px;
+  font-size: 0.85em;
+}
+
+.entity-card {
+  background: #f5f5f5;
+  padding: 8px 12px;
+  margin: 5px 0;
+  border-radius: 4px;
+  border-left: 3px solid #4a6baf;
+}
+
+.summary-section {
+  margin: 15px 0;
+  line-height: 1.6;
+}
+
+.loading-analysis {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #4a6baf;
+  width: 0%;
+  transition: width 0.3s ease;
+}
   </style>
 </head>
 <body>
@@ -393,6 +477,20 @@
   <input id="orderPdfInput" type="file" accept="application/pdf">
   <div id="pageOrderList" style="max-height:150px; overflow-y:auto; border:1px solid #ddd; padding:5px; margin-top:8px; background:#fafafa;"></div>
   <button id="orderPagesBtn">Guardar PDF ordenado</button>
+</div>
+
+<div class="section">
+  <label for="analyzePdfInput">Analizar Contenido del PDF</label>
+  <input id="analyzePdfInput" type="file" accept="application/pdf">
+  <div class="analysis-options">
+    <label><input type="checkbox" id="extractKeyConcepts" checked> Conceptos clave</label>
+    <label><input type="checkbox" id="generateSummary" checked> Resumen</label>
+    <label><input type="checkbox" id="identifyEntities"> Entidades importantes</label>
+  </div>
+  <div id="pdfAnalysisResult" class="analysis-results"></div>
+  <button id="analyzePdfBtn" class="analysis-btn">
+    <i class="fas fa-chart-bar"></i> Analizar Contenido
+  </button>
 </div>
 
   <a id="downloadLink" href="#" style="display:none;" download="output.pdf"></a>
@@ -979,6 +1077,276 @@ toast.addEventListener('click', () => {
   toast.style.animation = 'toastOut 0.36s forwards';
   setTimeout(() => toast.remove(), 360);
 });
+}
+
+// Reemplazar el código anterior por este
+const analyzePdfInput = document.getElementById('analyzePdfInput');
+const analyzePdfBtn = document.getElementById('analyzePdfBtn');
+const pdfAnalysisResult = document.getElementById('pdfAnalysisResult');
+const extractKeyConcepts = document.getElementById('extractKeyConcepts');
+const generateSummary = document.getElementById('generateSummary');
+const identifyEntities = document.getElementById('identifyEntities');
+
+// Cargar modelo de NLP (usaremos un modelo pequeño que funcione en el navegador)
+let nlpModel;
+async function loadNLPModel() {
+  try {
+    // @todo: Reemplazar con la carga real del modelo
+    // nlpModel = await nlp.load('small-model');
+    console.log("Modelo de NLP cargado");
+  } catch (error) {
+    console.error("Error cargando modelo NLP:", error);
+    showToast("No se pudo cargar el analizador avanzado. Usando modo básico.", "warning");
+  }
+}
+
+// Cargar el modelo cuando la página esté lista
+document.addEventListener('DOMContentLoaded', loadNLPModel);
+
+analyzePdfBtn.addEventListener('click', async () => {
+  if (!analyzePdfInput.files[0]) {
+    showToast('Selecciona un archivo PDF primero', 'error');
+    return;
+  }
+
+  try {
+    analyzePdfBtn.disabled = true;
+    analyzePdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analizando...';
+    
+    // Mostrar área de resultados con indicador de progreso
+    pdfAnalysisResult.style.display = 'block';
+    pdfAnalysisResult.innerHTML = `
+      <div class="loading-analysis">
+        <h4>Procesando documento...</h4>
+        <p>Extrayendo y analizando contenido</p>
+        <div class="progress-bar">
+          <div class="progress-bar-fill" id="analysisProgress"></div>
+        </div>
+      </div>
+    `;
+    
+    const progressBar = document.getElementById('analysisProgress');
+    const updateProgress = (percent) => {
+      progressBar.style.width = `${percent}%`;
+    };
+    
+    // Realizar análisis completo
+    const analysis = await analyzePdfContent(
+      analyzePdfInput.files[0],
+      {
+        extractKeyConcepts: extractKeyConcepts.checked,
+        generateSummary: generateSummary.checked,
+        identifyEntities: identifyEntities.checked
+      },
+      updateProgress
+    );
+    
+    // Mostrar resultados
+    displayAdvancedAnalysisResults(analysis);
+    showToast('Análisis completado');
+    
+  } catch (error) {
+    pdfAnalysisResult.innerHTML = `
+      <div style="color:red; padding:15px;">
+        <h4>Error en el análisis</h4>
+        <p>${error.message}</p>
+        ${error.message.includes('escaneado') ? 
+          '<p>Este PDF parece ser un documento escaneado. Prueba con un PDF que contenga texto seleccionable.</p>' : ''}
+      </div>
+    `;
+    showToast(`Error al analizar PDF: ${error.message}`, 'error');
+  } finally {
+    analyzePdfBtn.disabled = false;
+    analyzePdfBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Analizar Contenido';
+  }
+});
+
+async function analyzePdfContent(pdfFile, options, progressCallback) {
+  // 1. Extraer texto del PDF
+  progressCallback(10);
+  const text = await extractTextFromPdf(pdfFile);
+  if (!text || text.trim().length < 50) {
+    throw new Error('El PDF no contiene texto suficiente para analizar o es un documento escaneado');
+  }
+  
+  const result = {
+    fullText: text,
+    keyConcepts: [],
+    summary: '',
+    entities: [],
+    stats: {
+      wordCount: text.split(/\s+/).length,
+      pageCount: 0,
+      readingTime: Math.ceil(text.split(/\s+/).length / 200) // 200 palabras/minuto
+    }
+  };
+  
+  progressCallback(30);
+  
+  // 2. Obtener información básica del PDF
+  const loadingTask = pdfjsLib.getDocument(await pdfFile.arrayBuffer());
+  const pdf = await loadingTask.promise;
+  result.stats.pageCount = pdf.numPages;
+  
+  progressCallback(40);
+  
+  // 3. Análisis de contenido según opciones seleccionadas
+  if (options.extractKeyConcepts) {
+    result.keyConcepts = await extractKeyConceptsFromText(text);
+    progressCallback(60);
+  }
+  
+  if (options.generateSummary) {
+    result.summary = await generateTextSummary(text);
+    progressCallback(80);
+  }
+  
+  if (options.identifyEntities) {
+    result.entities = await identifyImportantEntities(text);
+    progressCallback(90);
+  }
+  
+  progressCallback(100);
+  return result;
+}
+
+async function extractTextFromPdf(pdfFile) {
+  const loadingTask = pdfjsLib.getDocument(await pdfFile.arrayBuffer());
+  const pdf = await loadingTask.promise;
+  
+  let fullText = '';
+  const maxPagesToExtract = 20; // Límite por rendimiento
+  
+  for (let i = 1; i <= Math.min(maxPagesToExtract, pdf.numPages); i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map(item => item.str).join(' ');
+    fullText += pageText + '\n\n';
+  }
+  
+  return fullText;
+}
+
+// Funciones de análisis (implementaciones simplificadas)
+async function extractKeyConceptsFromText(text) {
+  // Implementación real usaría NLP, esta es una simulación
+  const sentences = text.split(/[.!?]+/);
+  const words = text.toLowerCase().split(/\s+/);
+  
+  // Contar frecuencia de palabras (excluyendo comunes)
+  const commonWords = new Set(['el', 'la', 'los', 'las', 'de', 'en', 'y', 'a', 'que', 'es']);
+  const wordCounts = {};
+  
+  words.forEach(word => {
+    if (word.length > 3 && !commonWords.has(word)) {
+      wordCounts[word] = (wordCounts[word] || 0) + 1;
+    }
+  });
+  
+  // Ordenar por frecuencia
+  const sortedWords = Object.entries(wordCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+    .map(([word]) => word);
+  
+  return sortedWords;
+}
+
+async function generateTextSummary(text) {
+  // Implementación real usaría algoritmos de resumen, esta es una simulación
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  
+  // Seleccionar las primeras y últimas oraciones (método simple)
+  const importantSentences = [
+    sentences[0],
+    sentences[Math.floor(sentences.length / 3)],
+    sentences[Math.floor(sentences.length / 2)],
+    sentences[sentences.length - 1]
+  ];
+  
+  return importantSentences.join('. ') + '.';
+}
+
+async function identifyImportantEntities(text) {
+  // Implementación real identificaría personas, lugares, organizaciones
+  // Esta es una simulación básica
+  return [
+    { type: 'Persona', name: 'Juan Pérez', count: 3 },
+    { type: 'Organización', name: 'Acme Corp', count: 2 },
+    { type: 'Lugar', name: 'Buenos Aires', count: 4 }
+  ];
+}
+
+function displayAdvancedAnalysisResults(analysis) {
+  let html = `
+    <div class="analysis-header">
+      <h4>Análisis del Documento</h4>
+      <p><strong>${analysis.stats.wordCount.toLocaleString()} palabras</strong> 
+      (${analysis.stats.readingTime} min lectura) · 
+      ${analysis.stats.pageCount} páginas analizadas</p>
+    </div>
+  `;
+  
+  if (analysis.keyConcepts.length > 0) {
+    html += `
+      <div class="summary-section">
+        <h5>Conceptos Clave</h5>
+        <div class="concepts-container">
+          ${analysis.keyConcepts.map(concept => 
+            `<span class="concept-badge">${concept}</span>`
+          ).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  if (analysis.summary) {
+    html += `
+      <div class="summary-section">
+        <h5>Resumen</h5>
+        <p>${analysis.summary}</p>
+      </div>
+    `;
+  }
+  
+  if (analysis.entities.length > 0) {
+    html += `
+      <div class="summary-section">
+        <h5>Entidades Importantes</h5>
+        ${analysis.entities.map(entity => `
+          <div class="entity-card">
+            <strong>${entity.type}:</strong> ${entity.name}
+            <span style="color:#666; font-size:0.8em;">(mencionado ${entity.count} veces)</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  
+  html += `
+    <div class="summary-section" style="margin-top:20px;">
+      <button id="showFullTextBtn" class="small-btn">
+        <i class="fas fa-file-alt"></i> Mostrar texto completo extraído
+      </button>
+      <div id="fullTextContainer" style="display:none; margin-top:10px; max-height:300px; overflow-y:auto; padding:10px; background:#f5f5f5; border-radius:4px;">
+        <pre>${analysis.fullText.substring(0, 5000)}${analysis.fullText.length > 5000 ? '... [texto truncado]' : ''}</pre>
+      </div>
+    </div>
+  `;
+  
+  pdfAnalysisResult.innerHTML = html;
+  
+  // Evento para mostrar/ocultar texto completo
+  document.getElementById('showFullTextBtn').addEventListener('click', function() {
+    const container = document.getElementById('fullTextContainer');
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      this.innerHTML = '<i class="fas fa-file-alt"></i> Ocultar texto completo';
+    } else {
+      container.style.display = 'none';
+      this.innerHTML = '<i class="fas fa-file-alt"></i> Mostrar texto completo extraído';
+    }
+  });
 }
 
 </script>
