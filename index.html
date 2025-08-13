@@ -352,7 +352,6 @@
   }
 }
 
-/* Estilos para el modal y barra de herramientas */
 /* Modal */
 .text-modal {
   position: fixed;
@@ -371,22 +370,24 @@
 
 .text-modal-content {
   background: white;
-  padding: 20px;
+  padding: 25px; /* Padding uniforme en todos los lados */
   border-radius: 8px;
-  width: 100%;
-  max-width: 600px;
-  max-height: 80vh;
+  width: calc(100% - 40px); /* Restamos el padding total (20px cada lado) */
+  max-width: 600px; /* Ancho máximo */
+  max-height: calc(80vh - 40px); /* Altura considerando padding */
   display: flex;
   flex-direction: column;
+  margin: 0 auto; /* Centrado horizontal */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 }
 
 /* Área de texto */
 .text-modal-textarea {
-  width: 100%;
+  width: calc(100% - 30px);
   flex-grow: 1;
   min-height: 300px;
   padding: 15px;
-  margin-bottom: 15px;
+  margin: 0 0 15px 0;
   border: 1px solid #ddd;
   border-radius: 4px;
   resize: vertical;
@@ -434,13 +435,13 @@
 }
 
 /* Responsive */
-@media (max-width: 600px) {
+@media (max-width: 480px) {
   .text-modal {
-    padding: 10px;
+    padding: 15px;
   }
   
   .text-modal-content {
-    padding: 15px;
+    padding: 20px;
   }
   
   .text-modal-actions {
@@ -1091,20 +1092,19 @@ toast.addEventListener('click', () => {
 const textToPdfBtn = document.getElementById('textToPdfBtn');
 
 textToPdfBtn.addEventListener('click', () => {
-  // Crear modal
   const modal = document.createElement('div');
   modal.className = 'text-modal';
   
   modal.innerHTML = `
     <div class="text-modal-content">
-      <h3 style="margin-top: 0; margin-bottom: 15px; color: #333;">Crear PDF desde texto</h3>
+      <h3 style="margin: 0 0 15px 0; color: #1f2f40; padding: 0 10px;">Crear PDF desde texto</h3>
       
       <textarea class="text-modal-textarea" 
                 placeholder="Escribe tu texto aquí (máximo 11,000 palabras)..."></textarea>
       
-      <div class="word-counter">0/11,000 palabras</div>
+      <div class="word-counter" style="padding: 0 10px;">0/11,000 palabras</div>
       
-      <div class="text-modal-actions">
+      <div class="text-modal-actions" style="padding: 0 10px;">
         <button id="cancelPdfBtn" class="pdf-button secondary">
           <i class="fas fa-times"></i> Cancelar
         </button>
