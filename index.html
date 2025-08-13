@@ -1556,7 +1556,7 @@ watermarkBtn.addEventListener('click', () => {
                  style="width: calc(100% - 30px); margin: 8px 0 15px;">
         </div>
         
-        <div style="display: grid; grid-template-columns: min-content min-content; gap: 10px; margin-bottom: 15px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
           <div>
             <label for="watermarkFontSize">Tamaño:</label>
             <input type="number" id="watermarkFontSize" value="72" min="8" max="200" 
@@ -1612,15 +1612,16 @@ watermarkBtn.addEventListener('click', () => {
       </div>
       
       <div style="margin-bottom: 20px;">
-        <div style="display: flex; gap: 10px; margin: 8px 0 0;">
-          <label style="display: flex;">
-            <input type="radio" name="watermarkLayer" value="over" checked>  Encima del contenido
-          </label>
-          <label style="display: flex;">
-            <input type="radio" name="watermarkLayer" value="under">  Debajo del contenido
-          </label>
-        </div>
-      </div>
+    <div style="display: flex; gap: 10px; margin: 8px 0 0; flex-wrap: nowrap;">
+      <label style="display: flex;">
+        <input type="radio" name="watermarkLayer" value="over" checked>  Encima del contenido
+      </label>
+      <label style="display: flex;">
+        <input type="radio" name="watermarkLayer" value="under">  Debajo del contenido
+      </label>
+    </div>
+</div>
+
     
       <div class="text-modal-actions" style="padding: 0 10px;">
         <button id="cancelWatermarkBtn" class="pdf-button secondary">
