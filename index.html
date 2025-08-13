@@ -454,52 +454,51 @@
   }
 }
 
-/* Estilos para la sección de marca de agua */
-#watermarkOptions {
+/* ===== ESTILOS OPTIMIZADOS PARA MARCA DE AGUA ===== */
+.watermark-modal .text-modal-content {
+  max-width: 650px;
+}
+
+.watermark-options {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.watermark-option-group {
   background: #f8f9fa;
   padding: 15px;
   border-radius: 6px;
-  margin-bottom: 15px;
+  border: 1px solid #e0e0e0;
 }
 
-#watermarkOptions label {
-  color: #333;
-  font-weight: 500;
-  margin-bottom: 5px;
+.watermark-option-group label {
   display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
 }
 
-#watermarkOptions input[type="text"],
-#watermarkOptions input[type="number"],
-#watermarkOptions select {
+.watermark-option-group input[type="text"],
+.watermark-option-group input[type="number"],
+.watermark-option-group select {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-family: 'Roboto', sans-serif;
-  font-size: 14px;
-  margin-bottom: 5px;
 }
 
-#watermarkOptions input[type="color"] {
+.watermark-range-container input[type="range"] {
   width: 100%;
-  height: 40px;
-  padding: 2px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-#watermarkOptions input[type="range"] {
-  width: 100%;
-  height: 8px;
+  height: 6px;
   -webkit-appearance: none;
   background: #e0e0e0;
-  border-radius: 4px;
+  border-radius: 3px;
   margin: 10px 0;
 }
 
-#watermarkOptions input[type="range"]::-webkit-slider-thumb {
+.watermark-range-container input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
@@ -508,56 +507,15 @@
   cursor: pointer;
 }
 
-#watermarkOptions span[id$="Value"] {
-  display: inline-block;
-  margin-left: 5px;
-  font-size: 13px;
-  color: #555;
-  min-width: 40px;
+/* Responsive */
+@media (max-width: 768px) {
+  .watermark-modal .text-modal-content {
+    width: 95%;
+  }
 }
 
-/* Estilos para los radio buttons y checkboxes */
-#watermarkOptions input[type="radio"] {
+#watermarkBtn i {
   margin-right: 8px;
-  accent-color: #f8500a;
-}
-
-/* Estilos para los grupos de opciones */
-#watermarkOptions > div {
-  margin-bottom: 15px;
-}
-
-/* Estilos responsivos */
-@media (max-width: 600px) {
-  #watermarkOptions {
-    padding: 12px;
-  }
-  
-  #watermarkOptions div[style*="grid-template-columns"] {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  
-  #watermarkOptions input[type="range"] {
-    margin: 8px 0;
-  }
-}
-
-/* Estilo para el botón de añadir marca de agua */
-#addWatermarkBtn {
-  width: 100%;
-  padding: 12px;
-  background: #4a6baf;
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-#addWatermarkBtn:hover {
-  background: #3a5a9f;
 }
 
   </style>
@@ -612,103 +570,13 @@
 
 
 <div class="section">
-  <label for="watermarkPdfInput">Marca de agua en PDF</label>
-  <input id="watermarkPdfInput" type="file" accept="application/pdf">
-  
-  <div id="watermarkOptions" style="margin-top: 15px;">
-    <div style="margin-bottom: 15px;">
-      <label>Tipo de marca de agua:</label>
-      <div style="display: flex; gap: 15px; margin-top: 5px;">
-        <label style="display: flex; align-items: center;">
-          <input type="radio" name="watermarkType" value="text" checked> Texto
-        </label>
-        <label style="display: flex; align-items: center;">
-          <input type="radio" name="watermarkType" value="image"> Imagen
-        </label>
-      </div>
-    </div>
-    
-    <!-- Opciones para marca de agua de texto -->
-    <div id="textWatermarkOptions">
-      <div style="margin-bottom: 10px;">
-        <label for="watermarkText">Texto:</label>
-        <input type="text" id="watermarkText" placeholder="Ej: CONFIDENCIAL" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-      </div>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-        <div>
-          <label for="watermarkFontSize">Tamaño:</label>
-          <input type="number" id="watermarkFontSize" value="48" min="8" max="200" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-        </div>
-        <div>
-          <label for="watermarkColor">Color:</label>
-          <input type="color" id="watermarkColor" value="#000000" style="width: 100%; height: 36px; padding: 2px; border: 1px solid #ddd; border-radius: 4px;">
-        </div>
-      </div>
-    </div>
-    
-    <!-- Opciones para marca de agua de imagen -->
-    <div id="imageWatermarkOptions" style="display: none;">
-      <div style="margin-bottom: 10px;">
-        <label for="watermarkImageInput">Imagen:</label>
-        <input type="file" id="watermarkImageInput" accept="image/*" style="width: 100%;">
-      </div>
-      
-      <div style="margin-bottom: 10px;">
-        <label for="watermarkImageScale">Escala (%):</label>
-        <input type="range" id="watermarkImageScale" min="10" max="200" value="50" style="width: 100%;">
-        <span id="watermarkImageScaleValue">50%</span>
-      </div>
-    </div>
-    
-    <!-- Opciones comunes -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-      <div>
-        <label for="watermarkOpacity">Transparencia:</label>
-        <input type="range" id="watermarkOpacity" min="10" max="100" value="30" style="width: 100%;">
-        <span id="watermarkOpacityValue">30%</span>
-      </div>
-      <div>
-        <label for="watermarkRotation">Rotación (grados):</label>
-        <input type="range" id="watermarkRotation" min="0" max="360" value="45" style="width: 100%;">
-        <span id="watermarkRotationValue">45°</span>
-      </div>
-    </div>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-      <div>
-        <label for="watermarkPositionX">Posición horizontal:</label>
-        <select id="watermarkPositionX" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-          <option value="left">Izquierda</option>
-          <option value="center" selected>Centro</option>
-          <option value="right">Derecha</option>
-        </select>
-      </div>
-      <div>
-        <label for="watermarkPositionY">Posición vertical:</label>
-        <select id="watermarkPositionY" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-          <option value="top">Arriba</option>
-          <option value="middle" selected>Centro</option>
-          <option value="bottom">Abajo</option>
-        </select>
-      </div>
-    </div>
-    
-    <div style="margin-bottom: 15px;">
-      <label>Capa:</label>
-      <div style="display: flex; gap: 15px; margin-top: 5px;">
-        <label style="display: flex; align-items: center;">
-          <input type="radio" name="watermarkLayer" value="over" checked> Encima del contenido
-        </label>
-        <label style="display: flex; align-items: center;">
-          <input type="radio" name="watermarkLayer" value="under"> Debajo del contenido
-        </label>
-      </div>
-    </div>
-  </div>
-  
-  <button id="addWatermarkBtn">Añadir marca de agua</button>
+  <label>Añadir marca de agua</label>
+  <button id="watermarkBtn" class="pdf-button">
+    <i class="fas fa-stamp"></i> Añadir marca de agua
+  </button>
 </div>
+
+
   <a id="downloadLink" href="#" style="display:none;" download="output.pdf"></a>
 
 </div>
@@ -1451,179 +1319,310 @@ async function createSimplePdf(text) {
 }
 
 // Elementos para marca de agua
-const watermarkPdfInput = document.getElementById('watermarkPdfInput');
-const watermarkTextOptions = document.getElementById('textWatermarkOptions');
-const watermarkImageOptions = document.getElementById('imageWatermarkOptions');
-const watermarkTypeRadios = document.querySelectorAll('input[name="watermarkType"]');
-const addWatermarkBtn = document.getElementById('addWatermarkBtn');
+const watermarkBtn = document.getElementById('watermarkBtn');
+// Agrega esto con las otras constantes al inicio
+const { PDFDocument, StandardFonts, rgb, BlendMode } = PDFLib;
 
-// Event listeners para cambiar entre tipo de marca de agua
-watermarkTypeRadios.forEach(radio => {
-  radio.addEventListener('change', () => {
-    if (radio.value === 'text') {
-      watermarkTextOptions.style.display = 'block';
-      watermarkImageOptions.style.display = 'none';
-    } else {
-      watermarkTextOptions.style.display = 'none';
-      watermarkImageOptions.style.display = 'block';
+watermarkBtn.addEventListener('click', () => {
+  const modal = document.createElement('div');
+  modal.className = 'text-modal';
+  
+  modal.innerHTML = `
+    <div class="text-modal-content">
+      <h3 style="margin: 0 0 15px 0; color: #1f2f40; padding: 0 10px;">Añadir marca de agua a PDF</h3>
+      
+      <div style="margin-bottom: 15px;">
+        <label for="watermarkPdfInput">Seleccionar PDF:</label>
+        <input type="file" id="watermarkPdfInput" accept="application/pdf" style="width: 100%; margin: 8px 0 15px;">
+      </div>
+      
+      <div style="margin-bottom: 15px;">
+        <label>Tipo de marca de agua:</label>
+        <div style="display: flex; gap: 15px; margin: 8px 0 15px;">
+          <label style="display: flex; align-items: center;">
+            <input type="radio" name="watermarkType" value="text" checked> Texto
+          </label>
+          <label style="display: flex; align-items: center;">
+            <input type="radio" name="watermarkType" value="image"> Imagen
+          </label>
+        </div>
+      </div>
+      
+      <!-- Opciones para texto -->
+      <div id="textWatermarkOptions">
+        <div style="margin-bottom: 15px;">
+          <label for="watermarkText">Texto:</label>
+          <input type="text" id="watermarkText" placeholder="Ej: CONFIDENCIAL" 
+                 style="width: 100%; padding: 8px; margin: 8px 0 15px;">
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+          <div>
+            <label for="watermarkFontSize">Tamaño:</label>
+            <input type="number" id="watermarkFontSize" value="48" min="8" max="200" 
+                   style="width: 100%; padding: 8px; margin: 8px 0 0;">
+          </div>
+          <div>
+            <label for="watermarkColor">Color:</label>
+            <input type="color" id="watermarkColor" value="#000000" 
+                   style="width: 100%; height: 36px; padding: 2px; margin: 8px 0 0;">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Opciones para imagen -->
+      <div id="imageWatermarkOptions" style="display: none; margin-bottom: 15px;">
+        <label for="watermarkImageInput">Seleccionar imagen:</label>
+        <input type="file" id="watermarkImageInput" accept="image/*" style="width: 100%; margin: 8px 0 15px;">
+        
+        <label for="watermarkImageScale">Escala: <span id="watermarkImageScaleValue">50</span>%</label>
+        <input type="range" id="watermarkImageScale" min="10" max="200" value="50" 
+               style="width: 100%; margin: 8px 0 15px;">
+      </div>
+      
+      <!-- Opciones comunes -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div>
+          <label for="watermarkOpacity">Transparencia: <span id="watermarkOpacityValue">30</span>%</label>
+          <input type="range" id="watermarkOpacity" min="10" max="100" value="30" 
+                 style="width: 100%; margin: 8px 0 0;">
+        </div>
+        <div>
+          <label for="watermarkRotation">Rotación: <span id="watermarkRotationValue">45</span>°</label>
+          <input type="range" id="watermarkRotation" min="0" max="360" value="45" 
+                 style="width: 100%; margin: 8px 0 0;">
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div>
+          <label for="watermarkPositionX">Posición horizontal:</label>
+          <select id="watermarkPositionX" style="width: 100%; padding: 8px; margin: 8px 0 0;">
+            <option value="left">Izquierda</option>
+            <option value="center" selected>Centro</option>
+            <option value="right">Derecha</option>
+          </select>
+        </div>
+        <div>
+          <label for="watermarkPositionY">Posición vertical:</label>
+          <select id="watermarkPositionY" style="width: 100%; padding: 8px; margin: 8px 0 0;">
+            <option value="top">Arriba</option>
+            <option value="middle" selected>Centro</option>
+            <option value="bottom">Abajo</option>
+          </select>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label>Capa:</label>
+        <div style="display: flex; gap: 15px; margin: 8px 0 0;">
+          <label style="display: flex; align-items: center;">
+            <input type="radio" name="watermarkLayer" value="over" checked> Encima del contenido
+          </label>
+          <label style="display: flex; align-items: center;">
+            <input type="radio" name="watermarkLayer" value="under"> Debajo del contenido
+          </label>
+        </div>
+      </div>
+      
+      <div class="text-modal-actions" style="padding: 0 10px;">
+        <button id="cancelWatermarkBtn" class="pdf-button secondary">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
+        <button id="applyWatermarkBtn" class="pdf-button">
+          <i class="fas fa-stamp"></i> Aplicar marca
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Elementos del modal
+  const watermarkTypeRadios = modal.querySelectorAll('input[name="watermarkType"]');
+  const textOptions = modal.querySelector('#textWatermarkOptions');
+  const imageOptions = modal.querySelector('#imageWatermarkOptions');
+  
+  // Cambiar entre opciones de texto/imagen
+  watermarkTypeRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      textOptions.style.display = radio.value === 'text' ? 'block' : 'none';
+      imageOptions.style.display = radio.value === 'image' ? 'block' : 'none';
+    });
+  });
+  
+  // Actualizar valores de los rangos
+  modal.querySelector('#watermarkOpacity').addEventListener('input', (e) => {
+    modal.querySelector('#watermarkOpacityValue').textContent = e.target.value;
+  });
+  
+  modal.querySelector('#watermarkRotation').addEventListener('input', (e) => {
+    modal.querySelector('#watermarkRotationValue').textContent = e.target.value;
+  });
+  
+  modal.querySelector('#watermarkImageScale').addEventListener('input', (e) => {
+    modal.querySelector('#watermarkImageScaleValue').textContent = e.target.value;
+  });
+  
+  // Función para cerrar el modal
+  const closeModal = () => {
+    document.body.removeChild(modal);
+  };
+  
+  // Aplicar marca de agua
+  modal.querySelector('#applyWatermarkBtn').addEventListener('click', async () => {
+    const pdfFile = modal.querySelector('#watermarkPdfInput').files[0];
+    
+    if (!pdfFile) {
+      showToast('Selecciona un archivo PDF primero', 'error');
+      return;
     }
+    
+    const watermarkType = modal.querySelector('input[name="watermarkType"]:checked').value;
+    
+    if (watermarkType === 'text' && !modal.querySelector('#watermarkText').value.trim()) {
+      showToast('Ingresa un texto para la marca de agua', 'error');
+      return;
+    }
+    
+    if (watermarkType === 'image' && !modal.querySelector('#watermarkImageInput').files[0]) {
+      showToast('Selecciona una imagen para la marca de agua', 'error');
+      return;
+    }
+    
+    try {
+      closeModal();
+      showToast('Procesando PDF...', 'info');
+      
+      const fileName = await getCustomFileName('PDF_con_Marca_de_Agua.pdf');
+      const arrayBuffer = await pdfFile.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(arrayBuffer);
+      const pages = pdfDoc.getPages();
+      
+      const watermarkLayer = modal.querySelector('input[name="watermarkLayer"]:checked').value;
+      const opacity = parseInt(modal.querySelector('#watermarkOpacity').value) / 100;
+      const rotation = parseInt(modal.querySelector('#watermarkRotation').value) * (Math.PI / 180);
+      const positionX = modal.querySelector('#watermarkPositionX').value;
+      const positionY = modal.querySelector('#watermarkPositionY').value;
+      
+      if (watermarkType === 'text') {
+        const text = modal.querySelector('#watermarkText').value;
+        const fontSize = parseInt(modal.querySelector('#watermarkFontSize').value);
+        const color = hexToRgb(modal.querySelector('#watermarkColor').value);
+        
+        for (const page of pages) {
+          const { width, height } = page.getSize();
+          
+          // Calcular posición
+          const x = positionX === 'left' ? 50 : 
+                   positionX === 'right' ? width - 50 : 
+                   width / 2;
+          
+          const y = positionY === 'top' ? height - 50 : 
+                   positionY === 'bottom' ? 50 : 
+                   height / 2;
+          
+          // Aplicar marca de agua
+          if (watermarkLayer === 'under') {
+            page.pushOperators(
+              pdfDoc.context().operator('gs', ['watermark'])
+            );
+          }
+          
+          page.drawText(text, {
+            x,
+            y,
+            size: fontSize,
+            font: await pdfDoc.embedFont(StandardFonts.Helvetica),
+            color: rgb(color.r, color.g, color.b),
+            opacity,
+            rotate: { type: 'degrees', angle: rotation },
+            blendMode: BlendMode.Overlay,
+          });
+          
+          if (watermarkLayer === 'under') {
+            page.pushOperators(
+              pdfDoc.context().operator('Q')
+            );
+          }
+        }
+      } else {
+        const imageFile = modal.querySelector('#watermarkImageInput').files[0];
+        const imageBytes = await imageFile.arrayBuffer();
+        const scale = parseInt(modal.querySelector('#watermarkImageScale').value) / 100;
+        
+        let image;
+        try {
+          image = await pdfDoc.embedJpg(imageBytes);
+        } catch {
+          image = await pdfDoc.embedPng(imageBytes);
+        }
+        
+        const imageWidth = image.width * scale;
+        const imageHeight = image.height * scale;
+        
+        for (const page of pages) {
+          const { width, height } = page.getSize();
+          
+          // Calcular posición
+          const x = positionX === 'left' ? 50 : 
+                   positionX === 'right' ? width - imageWidth - 50 : 
+                   (width - imageWidth) / 2;
+          
+          const y = positionY === 'top' ? height - 50 - imageHeight : 
+                   positionY === 'bottom' ? 50 : 
+                   (height - imageHeight) / 2;
+          
+          // Aplicar marca de agua
+          if (watermarkLayer === 'under') {
+            page.pushOperators(
+              pdfDoc.context().operator('gs', ['watermark'])
+            );
+          }
+          
+          page.drawImage(image, {
+            x,
+            y,
+            width: imageWidth,
+            height: imageHeight,
+            opacity,
+            rotate: { type: 'degrees', angle: rotation },
+            blendMode: BlendMode.Overlay,
+          });
+          
+          if (watermarkLayer === 'under') {
+            page.pushOperators(
+              pdfDoc.context().operator('Q')
+            );
+          }
+        }
+      }
+      
+      await downloadAndSavePDF(pdfDoc, fileName);
+      showToast('Marca de agua añadida correctamente');
+      
+    } catch (error) {
+      console.error('Error al añadir marca de agua:', error);
+      showToast('Error al añadir marca de agua: ' + error.message, 'error');
+    }
+  });
+  
+  // Cancelar
+  modal.querySelector('#cancelWatermarkBtn').addEventListener('click', closeModal);
+  
+  // Cerrar al hacer clic fuera del contenido
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
   });
 });
 
-// Actualizar valores de los rangos
-document.getElementById('watermarkOpacity').addEventListener('input', (e) => {
-  document.getElementById('watermarkOpacityValue').textContent = `${e.target.value}%`;
-});
-
-document.getElementById('watermarkRotation').addEventListener('input', (e) => {
-  document.getElementById('watermarkRotationValue').textContent = `${e.target.value}°`;
-});
-
-document.getElementById('watermarkImageScale').addEventListener('input', (e) => {
-  document.getElementById('watermarkImageScaleValue').textContent = `${e.target.value}%`;
-});
-
-// Función principal para añadir marca de agua
-addWatermarkBtn.addEventListener('click', async () => {
-  if (!watermarkPdfInput.files[0]) {
-    showToast('Selecciona un archivo PDF primero', 'error');
-    return;
-  }
-
-  const watermarkType = document.querySelector('input[name="watermarkType"]:checked').value;
-  
-  if (watermarkType === 'text' && !document.getElementById('watermarkText').value.trim()) {
-    showToast('Ingresa un texto para la marca de agua', 'error');
-    return;
-  }
-  
-  if (watermarkType === 'image' && !document.getElementById('watermarkImageInput').files[0]) {
-    showToast('Selecciona una imagen para la marca de agua', 'error');
-    return;
-  }
-
-  try {
-    const fileName = await getCustomFileName('PDF_con_Marca_de_Agua.pdf');
-    const arrayBuffer = await watermarkPdfInput.files[0].arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
-    const pages = pdfDoc.getPages();
-    
-    const watermarkLayer = document.querySelector('input[name="watermarkLayer"]:checked').value;
-    const opacity = parseInt(document.getElementById('watermarkOpacity').value) / 100;
-    const rotation = parseInt(document.getElementById('watermarkRotation').value) * (Math.PI / 180);
-    const positionX = document.getElementById('watermarkPositionX').value;
-    const positionY = document.getElementById('watermarkPositionY').value;
-    
-    if (watermarkType === 'text') {
-      const text = document.getElementById('watermarkText').value;
-      const fontSize = parseInt(document.getElementById('watermarkFontSize').value);
-      const color = hexToRgb(document.getElementById('watermarkColor').value);
-      
-      for (const page of pages) {
-        const { width, height } = page.getSize();
-        
-        // Calcular posición
-        const x = positionX === 'left' ? 50 : 
-                 positionX === 'right' ? width - 50 : 
-                 width / 2;
-        
-        const y = positionY === 'top' ? height - 50 : 
-                 positionY === 'bottom' ? 50 : 
-                 height / 2;
-        
-        // Aplicar marca de agua
-        if (watermarkLayer === 'under') {
-          page.pushOperators(
-            pdfDoc.context().operator('gs', ['watermark'])
-          );
-        }
-        
-        page.drawText(text, {
-          x,
-          y,
-          size: fontSize,
-          font: await pdfDoc.embedFont(StandardFonts.Helvetica),
-          color: rgb(color.r, color.g, color.b),
-          opacity,
-          rotate: { type: 'degrees', angle: rotation },
-          blendMode: BlendMode.Overlay,
-        });
-        
-        if (watermarkLayer === 'under') {
-          page.pushOperators(
-            pdfDoc.context().operator('Q')
-          );
-        }
-      }
-    } else {
-      const imageFile = document.getElementById('watermarkImageInput').files[0];
-      const imageBytes = await imageFile.arrayBuffer();
-      const scale = parseInt(document.getElementById('watermarkImageScale').value) / 100;
-      
-      let image;
-      try {
-        image = await pdfDoc.embedJpg(imageBytes);
-      } catch {
-        image = await pdfDoc.embedPng(imageBytes);
-      }
-      
-      const imageWidth = image.width * scale;
-      const imageHeight = image.height * scale;
-      
-      for (const page of pages) {
-        const { width, height } = page.getSize();
-        
-        // Calcular posición
-        const x = positionX === 'left' ? 50 : 
-                 positionX === 'right' ? width - imageWidth - 50 : 
-                 (width - imageWidth) / 2;
-        
-        const y = positionY === 'top' ? height - 50 - imageHeight : 
-                 positionY === 'bottom' ? 50 : 
-                 (height - imageHeight) / 2;
-        
-        // Aplicar marca de agua
-        if (watermarkLayer === 'under') {
-          page.pushOperators(
-            pdfDoc.context().operator('gs', ['watermark'])
-          );
-        }
-        
-        page.drawImage(image, {
-          x,
-          y,
-          width: imageWidth,
-          height: imageHeight,
-          opacity,
-          rotate: { type: 'degrees', angle: rotation },
-          blendMode: BlendMode.Overlay,
-        });
-        
-        if (watermarkLayer === 'under') {
-          page.pushOperators(
-            pdfDoc.context().operator('Q')
-          );
-        }
-      }
-    }
-    
-    await downloadAndSavePDF(pdfDoc, fileName);
-    showToast('Marca de agua añadida correctamente');
-    
-  } catch (error) {
-    console.error('Error al añadir marca de agua:', error);
-    showToast('Error al añadir marca de agua', 'error');
-  }
-});
-
-// Función auxiliar para convertir hex a rgb
+// Función auxiliar para convertir hex a rgb (asegúrate de que esté definida)
 function hexToRgb(hex) {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;
   const b = parseInt(hex.slice(5, 7), 16) / 255;
   return { r, g, b };
 }
-
 </script>
 
 <div class="historial-header">
