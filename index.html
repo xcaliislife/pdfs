@@ -1074,56 +1074,46 @@ textToPdfBtn.addEventListener('click', async () => {
   try {
     const fileName = await getCustomFileName('Documento_de_Texto.pdf');
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([550, 750]); // Tamaño A4 aproximado en puntos
-    
-    // Configuración del texto
+    let page = pdfDoc.addPage([550, 750]); // Tamaño A4
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontSize = 12;
     const lineHeight = fontSize * 1.2;
     const margin = 50;
+    
     let y = page.getHeight() - margin - fontSize;
+    const paragraphs = text.split('\n');
     
-    // Dividir el texto en líneas que caben en la página
-    const words = text.split(/\s+/);
-    let currentLine = '';
-    
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    for (const paragraph of paragraphs) {
+      const words = paragraph.split(/\s+/).filter(w => w.length > 0);
+      let currentLine = '';
       
-      if (testWidth > (page.getWidth() - 2 * margin)) {
-        // Dibujar la línea actual y pasar a la siguiente
-        page.drawText(currentLine, {
-          x: margin,
-          y,
-          size: fontSize,
-          font,
-          color: rgb(0, 0, 0),
-        });
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const testWidth = font.widthOfTextAtSize(testLine, fontSize);
         
-        y -= lineHeight;
-        currentLine = word;
-        
-        // Verificar si necesitamos una nueva página
-        if (y < margin) {
-          const newPage = pdfDoc.addPage([550, 750]);
-          page = newPage;
-          y = page.getHeight() - margin - fontSize;
+        if (testWidth > (page.getWidth() - 2 * margin)) {
+          page.drawText(currentLine, { x: margin, y, size: fontSize, font });
+          y -= lineHeight;
+          currentLine = word;
+          
+          if (y < margin) {
+            page = pdfDoc.addPage([550, 750]);
+            y = page.getHeight() - margin - fontSize;
+          }
+        } else {
+          currentLine = testLine;
         }
-      } else {
-        currentLine = testLine;
       }
-    }
-    
-    // Dibujar la última línea
-    if (currentLine) {
-      page.drawText(currentLine, {
-        x: margin,
-        y,
-        size: fontSize,
-        font,
-        color: rgb(0, 0, 0),
-      });
+      
+      if (currentLine) {
+        page.drawText(currentLine, { x: margin, y, size: fontSize, font });
+        y -= lineHeight * 1.5; // Espacio extra después de párrafo
+      }
+      
+      if (y < margin) {
+        page = pdfDoc.addPage([550, 750]);
+        y = page.getHeight() - margin - fontSize;
+      }
     }
     
     downloadAndSavePDF(pdfDoc, fileName);
