@@ -1181,8 +1181,9 @@ toast.addEventListener('click', () => {
 });
 }
 
-  // Texto a PDF
 
+
+// Texto a PDF - Versión corregida
 const textToPdfBtn = document.getElementById('textToPdfBtn');
 
 textToPdfBtn.addEventListener('click', () => {
@@ -1221,16 +1222,11 @@ textToPdfBtn.addEventListener('click', () => {
     const wordCount = text ? text.split(/\s+/).length : 0;
     wordCounter.textContent = `${wordCount.toLocaleString()}/20,000 palabras`;
     
-    // Deshabilitar botón si se excede el límite
     modal.querySelector('#generatePdfBtn').disabled = wordCount > 20000;
   });
 
-  // Función para cerrar el modal
-  const closeModal = () => {
-    document.body.removeChild(modal);
-  };
+  const closeModal = () => document.body.removeChild(modal);
 
-  // Generar PDF
   modal.querySelector('#generatePdfBtn').addEventListener('click', async () => {
     const text = textarea.value.trim();
     
@@ -1249,20 +1245,13 @@ textToPdfBtn.addEventListener('click', () => {
     await createSimplePdf(text);
   });
   
-  // Cancelar
   modal.querySelector('#cancelPdfBtn').addEventListener('click', closeModal);
-  
-  // Cerrar al hacer clic fuera del contenido
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
-  });
+  modal.addEventListener('click', (e) => e.target === modal && closeModal());
 });
-
-
 
 async function createSimplePdf(text) {
   try {
-    // Verificar longitud del texto
+    // Verificación de límites
     const wordCount = text.split(/\s+/).length;
     const charCount = text.length;
     
@@ -1279,17 +1268,16 @@ async function createSimplePdf(text) {
     const fileName = await getCustomFileName('Documento.pdf');
     showToast(`Procesando documento (${wordCount} palabras)...`, 'info');
     
-    // Crear PDF en lotes para evitar bloqueos
     const pdfDoc = await PDFDocument.create();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     
-    let page = pdfDoc.addPage([595, 842]); // Tamaño A4
+    let page = pdfDoc.addPage([595, 842]);
     const margin = 50;
     const fontSize = 12;
     const lineHeight = fontSize * 1.5;
     let y = page.getHeight() - margin;
     
-    // Dividir texto y procesar en bloques
+    // Procesamiento por lotes
     const paragraphs = text.split('\n');
     let currentBatch = [];
     let batchSize = 0;
@@ -1301,7 +1289,6 @@ async function createSimplePdf(text) {
         currentBatch.push(word);
         batchSize += word.length;
         
-        // Procesar lote cada 100 palabras o 5,000 caracteres
         if (currentBatch.length >= 100 || batchSize >= 5000) {
           const result = await processTextBatch(currentBatch.join(' '), {
             pdfDoc, page, font, margin, fontSize, lineHeight, y
@@ -1310,13 +1297,10 @@ async function createSimplePdf(text) {
           y = result.y;
           currentBatch = [];
           batchSize = 0;
-          
-          // Pequeña pausa para evitar bloqueo del navegador
           await new Promise(resolve => setTimeout(resolve, 10));
         }
       }
       
-      // Procesar palabras restantes del párrafo
       if (currentBatch.length > 0) {
         const result = await processTextBatch(currentBatch.join(' '), {
           pdfDoc, page, font, margin, fontSize, lineHeight, y
@@ -1327,7 +1311,6 @@ async function createSimplePdf(text) {
         batchSize = 0;
       }
       
-      // Espacio entre párrafos
       y -= lineHeight * 0.5;
       if (y < margin) {
         page = pdfDoc.addPage([595, 842]);
@@ -1340,11 +1323,10 @@ async function createSimplePdf(text) {
     
   } catch (error) {
     console.error('Error al crear PDF:', error);
-    showToast('Error al crear el PDF: ' + error.message, 'error');
+    showToast(`Error al crear el PDF: ${error.message}`, 'error');
   }
 }
 
-// Añade esta nueva función auxiliar (colócala junto a tus otras funciones auxiliares)
 async function processTextBatch(text, { pdfDoc, page, font, margin, fontSize, lineHeight, y }) {
   const words = text.split(/\s+/);
   let currentLine = '';
@@ -1354,7 +1336,6 @@ async function processTextBatch(text, { pdfDoc, page, font, margin, fontSize, li
     const testWidth = font.widthOfTextAtSize(testLine, fontSize);
     
     if (testWidth > (page.getWidth() - 2 * margin)) {
-      // Dibujar línea actual
       page.drawText(currentLine, {
         x: margin,
         y,
@@ -1366,7 +1347,6 @@ async function processTextBatch(text, { pdfDoc, page, font, margin, fontSize, li
       y -= lineHeight;
       currentLine = word;
       
-      // Nueva página si es necesario
       if (y < margin) {
         page = pdfDoc.addPage([595, 842]);
         y = page.getHeight() - margin;
@@ -1376,7 +1356,6 @@ async function processTextBatch(text, { pdfDoc, page, font, margin, fontSize, li
     }
   }
   
-  // Dibujar última línea del lote
   if (currentLine) {
     page.drawText(currentLine, {
       x: margin,
@@ -1389,22 +1368,6 @@ async function processTextBatch(text, { pdfDoc, page, font, margin, fontSize, li
   }
   
   return { page, y };
-}
-      
-      // Verificar nueva página
-      if (y < margin) {
-        page = pdfDoc.addPage([595, 842]);
-        y = page.getHeight() - margin;
-      }
-    }
-    
-    await downloadAndSavePDF(pdfDoc, fileName);
-    showToast('PDF creado exitosamente');
-    
-  } catch (error) {
-    console.error('Error al crear PDF:', error);
-    showToast('Error al crear el PDF', 'error');
-  }
 }
 
 
