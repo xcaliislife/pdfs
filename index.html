@@ -1194,9 +1194,9 @@ textToPdfBtn.addEventListener('click', () => {
       <h3 style="margin: 0 0 15px 0; color: #1f2f40; padding: 0 10px;">Crear PDF desde texto</h3>
       
       <textarea class="text-modal-textarea" 
-                placeholder="Escribe tu texto aquí (máximo 11,000 palabras)..."></textarea>
+                placeholder="Escribe tu texto aquí (máximo 20,000 palabras)..."></textarea>
       
-      <div class="word-counter" style="padding: 0 10px;">0/11,000 palabras</div>
+      <div class="word-counter" style="padding: 0 10px;">0/20,000 palabras</div>
       
       <div class="text-modal-actions" style="padding: 0 10px;">
         <button id="cancelPdfBtn" class="pdf-button secondary">
@@ -1219,10 +1219,10 @@ textToPdfBtn.addEventListener('click', () => {
   textarea.addEventListener('input', () => {
     const text = textarea.value.trim();
     const wordCount = text ? text.split(/\s+/).length : 0;
-    wordCounter.textContent = `${wordCount.toLocaleString()}/11,000 palabras`;
+    wordCounter.textContent = `${wordCount.toLocaleString()}/20,000 palabras`;
     
     // Deshabilitar botón si se excede el límite
-    modal.querySelector('#generatePdfBtn').disabled = wordCount > 11000;
+    modal.querySelector('#generatePdfBtn').disabled = wordCount > 20000;
   });
 
   // Función para cerrar el modal
@@ -1240,8 +1240,8 @@ textToPdfBtn.addEventListener('click', () => {
     }
     
     const wordCount = text.split(/\s+/).length;
-    if (wordCount > 11000) {
-      showToast('El texto excede el límite de 11,000 palabras', 'error');
+    if (wordCount > 20000) {
+      showToast('El texto excede el límite de 20,000 palabras', 'error');
       return;
     }
     
@@ -1258,67 +1258,138 @@ textToPdfBtn.addEventListener('click', () => {
   });
 });
 
-// Función simple para crear PDF
+
+
 async function createSimplePdf(text) {
   try {
-    const fileName = await getCustomFileName('Documento.pdf');
-    const pdfDoc = await PDFDocument.create();
-    let page = pdfDoc.addPage([595, 842]); // Tamaño A4
+    // Verificar longitud del texto
+    const wordCount = text.split(/\s+/).length;
+    const charCount = text.length;
     
-    // Configuración
+    if (wordCount > 20000) {
+      showToast('El texto excede el límite de 20,000 palabras', 'error');
+      return;
+    }
+    
+    if (charCount > 150000) {
+      showToast('El texto excede el límite de 150,000 caracteres', 'error');
+      return;
+    }
+
+    const fileName = await getCustomFileName('Documento.pdf');
+    showToast(`Procesando documento (${wordCount} palabras)...`, 'info');
+    
+    // Crear PDF en lotes para evitar bloqueos
+    const pdfDoc = await PDFDocument.create();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    
+    let page = pdfDoc.addPage([595, 842]); // Tamaño A4
     const margin = 50;
     const fontSize = 12;
     const lineHeight = fontSize * 1.5;
     let y = page.getHeight() - margin;
     
-    // Fuente
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    
-    // Dividir texto en párrafos
-    const paragraphs = text.split('\n').filter(p => p.trim().length > 0);
+    // Dividir texto y procesar en bloques
+    const paragraphs = text.split('\n');
+    let currentBatch = [];
+    let batchSize = 0;
     
     for (const paragraph of paragraphs) {
-      const words = paragraph.split(/\s+/);
-      let currentLine = '';
+      const words = paragraph.split(/\s+/).filter(w => w.length > 0);
       
       for (const word of words) {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+        currentBatch.push(word);
+        batchSize += word.length;
         
-        if (testWidth > (page.getWidth() - 2 * margin)) {
-          // Dibujar línea actual
-          page.drawText(currentLine, {
-            x: margin,
-            y,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
+        // Procesar lote cada 100 palabras o 5,000 caracteres
+        if (currentBatch.length >= 100 || batchSize >= 5000) {
+          const result = await processTextBatch(currentBatch.join(' '), {
+            pdfDoc, page, font, margin, fontSize, lineHeight, y
           });
+          page = result.page;
+          y = result.y;
+          currentBatch = [];
+          batchSize = 0;
           
-          y -= lineHeight;
-          currentLine = word;
-          
-          // Nueva página si es necesario
-          if (y < margin) {
-            page = pdfDoc.addPage([595, 842]);
-            y = page.getHeight() - margin;
-          }
-        } else {
-          currentLine = testLine;
+          // Pequeña pausa para evitar bloqueo del navegador
+          await new Promise(resolve => setTimeout(resolve, 10));
         }
       }
       
-      // Dibujar última línea
-      if (currentLine) {
-        page.drawText(currentLine, {
-          x: margin,
-          y,
-          size: fontSize,
-          font,
-          color: rgb(0, 0, 0),
+      // Procesar palabras restantes del párrafo
+      if (currentBatch.length > 0) {
+        const result = await processTextBatch(currentBatch.join(' '), {
+          pdfDoc, page, font, margin, fontSize, lineHeight, y
         });
-        y -= lineHeight * 2; // Espacio entre párrafos
+        page = result.page;
+        y = result.y;
+        currentBatch = [];
+        batchSize = 0;
       }
+      
+      // Espacio entre párrafos
+      y -= lineHeight * 0.5;
+      if (y < margin) {
+        page = pdfDoc.addPage([595, 842]);
+        y = page.getHeight() - margin;
+      }
+    }
+    
+    await downloadAndSavePDF(pdfDoc, fileName);
+    showToast(`PDF creado exitosamente (${wordCount} palabras)`);
+    
+  } catch (error) {
+    console.error('Error al crear PDF:', error);
+    showToast('Error al crear el PDF: ' + error.message, 'error');
+  }
+}
+
+// Añade esta nueva función auxiliar (colócala junto a tus otras funciones auxiliares)
+async function processTextBatch(text, { pdfDoc, page, font, margin, fontSize, lineHeight, y }) {
+  const words = text.split(/\s+/);
+  let currentLine = '';
+  
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    
+    if (testWidth > (page.getWidth() - 2 * margin)) {
+      // Dibujar línea actual
+      page.drawText(currentLine, {
+        x: margin,
+        y,
+        size: fontSize,
+        font,
+        color: rgb(0, 0, 0),
+      });
+      
+      y -= lineHeight;
+      currentLine = word;
+      
+      // Nueva página si es necesario
+      if (y < margin) {
+        page = pdfDoc.addPage([595, 842]);
+        y = page.getHeight() - margin;
+      }
+    } else {
+      currentLine = testLine;
+    }
+  }
+  
+  // Dibujar última línea del lote
+  if (currentLine) {
+    page.drawText(currentLine, {
+      x: margin,
+      y,
+      size: fontSize,
+      font,
+      color: rgb(0, 0, 0),
+    });
+    y -= lineHeight;
+  }
+  
+  return { page, y };
+}
       
       // Verificar nueva página
       if (y < margin) {
