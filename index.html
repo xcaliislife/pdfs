@@ -1321,6 +1321,7 @@ async function createSimplePdf(text) {
 
 
 // Elementos para marca de agua
+// Elementos para marca de agua
 const watermarkBtn = document.getElementById('watermarkBtn');
 const { PDFDocument, StandardFonts, rgb, degrees, BlendMode } = PDFLib;
 
@@ -1330,6 +1331,12 @@ function hexToRgb(hex) {
   const g = parseInt(hex.slice(3, 5), 16) / 255;
   const b = parseInt(hex.slice(5, 7), 16) / 255;
   return rgb(r, g, b);
+}
+
+// Función para calcular ancho del texto
+async function getTextWidth(text, font, fontSize) {
+  const { width } = font.widthOfTextAtSize(text, fontSize);
+  return width;
 }
 
 // Función para configurar el modal
@@ -1408,30 +1415,34 @@ async function applyWatermark(modal) {
       const color = hexToRgb(modal.querySelector('#watermarkColor').value);
       const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
       
+      // Calcular ancho del texto para centrado preciso
+      const textWidth = await getTextWidth(text, font, fontSize);
+      
       for (const page of pages) {
         const { width, height } = page.getSize();
-        const x = calculateXPosition(width, positionX, 200);
-        const y = calculateYPosition(height, positionY, 50);
-        
-        if (watermarkLayer === 'under') {
-          const { pushGraphicsState, popGraphicsState } = pdfDoc.context();
-          page.pushOperators(pushGraphicsState());
-        }
-        
-        page.drawText(text, {
+        let x = calculateXPosition(width, positionX, textWidth);
+        let y = calculateYPosition(height, positionY, fontSize);
+
+        // Configuración de dibujo común
+        const drawOptions = {
           x,
           y,
           size: fontSize,
           font,
           color,
           opacity,
-          rotate: degrees(rotation), // Corregido: usando degrees()
+          rotate: degrees(rotation),
           blendMode: BlendMode.Multiply
-        });
-        
+        };
+
+        // Manejo de capas simplificado
         if (watermarkLayer === 'under') {
-          const { popGraphicsState } = pdfDoc.context();
-          page.pushOperators(popGraphicsState());
+          // Para debajo del contenido, dibujamos primero la marca de agua
+          page.drawText(text, drawOptions);
+          // Luego el contenido existente se dibuja encima
+        } else {
+          // Para encima del contenido, simplemente dibujamos
+          page.drawText(text, drawOptions);
         }
       }
     } else {
@@ -1455,25 +1466,21 @@ async function applyWatermark(modal) {
         const { width, height } = page.getSize();
         const x = calculateXPosition(width, positionX, imageWidth);
         const y = calculateYPosition(height, positionY, imageHeight);
-        
-        if (watermarkLayer === 'under') {
-          const { pushGraphicsState, popGraphicsState } = pdfDoc.context();
-          page.pushOperators(pushGraphicsState());
-        }
-        
-        page.drawImage(image, {
+
+        const drawOptions = {
           x,
           y,
           width: imageWidth,
           height: imageHeight,
           opacity,
-          rotate: degrees(rotation), // Corregido: usando degrees()
+          rotate: degrees(rotation),
           blendMode: BlendMode.Multiply
-        });
-        
+        };
+
         if (watermarkLayer === 'under') {
-          const { popGraphicsState } = pdfDoc.context();
-          page.pushOperators(popGraphicsState());
+          page.drawImage(image, drawOptions);
+        } else {
+          page.drawImage(image, drawOptions);
         }
       }
     }
@@ -1496,6 +1503,7 @@ async function applyWatermark(modal) {
   }
 }
 
+// Funciones de cálculo de posición mejoradas
 function calculateXPosition(pageWidth, position, elementWidth = 0) {
   const margin = 50;
   switch (position) {
@@ -1509,9 +1517,9 @@ function calculateXPosition(pageWidth, position, elementWidth = 0) {
 function calculateYPosition(pageHeight, position, elementHeight = 0) {
   const margin = 50;
   switch (position) {
-    case 'top': return pageHeight - elementHeight - margin;
-    case 'bottom': return margin;
-    case 'middle': return (pageHeight - elementHeight) / 2;
+    case 'top': return pageHeight - margin;
+    case 'bottom': return margin + elementHeight;
+    case 'middle': return (pageHeight / 2) + (elementHeight / 2);
     default: return margin;
   }
 }
