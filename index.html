@@ -1319,122 +1319,10 @@ async function createSimplePdf(text) {
 
 
 
+
 // Elementos para marca de agua
 const watermarkBtn = document.getElementById('watermarkBtn');
 const { PDFDocument, StandardFonts, rgb, BlendMode } = PDFLib;
-
-watermarkBtn.addEventListener('click', () => {
-  const modal = document.createElement('div');
-  modal.className = 'text-modal';
-  
-  modal.innerHTML = `
-    <div class="text-modal-content">
-      <h3 style="margin: 0 0 15px 0; color: #1f2f40; padding: 0 10px;">Añadir marca de agua a PDF</h3>
-      
-      <div style="margin-bottom: 15px;">
-        <label for="watermarkPdfInput">Seleccionar PDF:</label>
-        <input type="file" id="watermarkPdfInput" accept="application/pdf" style="width: 100%; margin: 8px 0 15px;">
-      </div>
-      
-      <div style="margin-bottom: 15px;">
-        <label>Tipo de marca de agua:</label>
-        <div style="display: flex; gap: 15px; margin: 8px 0 15px;">
-          <label style="display: flex; align-items: center;">
-            <input type="radio" name="watermarkType" value="text" checked> Texto
-          </label>
-          <label style="display: flex; align-items: center;">
-            <input type="radio" name="watermarkType" value="image"> Imagen
-          </label>
-        </div>
-      </div>
-      
-      <div id="textWatermarkOptions">
-        <div style="margin-bottom: 15px;">
-          <label for="watermarkText">Texto:</label>
-          <input type="text" id="watermarkText" placeholder="Ej: CONFIDENCIAL" 
-                 style="width: 100%; padding: 8px; margin: 8px 0 15px;">
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-          <div>
-            <label for="watermarkFontSize">Tamaño:</label>
-            <input type="number" id="watermarkFontSize" value="48" min="8" max="200" 
-                   style="width: 100%; padding: 8px; margin: 8px 0 0;">
-          </div>
-          <div>
-            <label for="watermarkColor">Color:</label>
-            <input type="color" id="watermarkColor" value="#000000" 
-                   style="width: 100%; height: 36px; padding: 2px; margin: 8px 0 0;">
-          </div>
-        </div>
-      </div>
-      
-      <div id="imageWatermarkOptions" style="display: none; margin-bottom: 15px;">
-        <label for="watermarkImageInput">Seleccionar imagen:</label>
-        <input type="file" id="watermarkImageInput" accept="image/*" style="width: 100%; margin: 8px 0 15px;">
-        
-        <label for="watermarkImageScale">Escala: <span id="watermarkImageScaleValue">50</span>%</label>
-        <input type="range" id="watermarkImageScale" min="10" max="200" value="50" 
-               style="width: 100%; margin: 8px 0 15px;">
-      </div>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-        <div>
-          <label for="watermarkOpacity">Transparencia: <span id="watermarkOpacityValue">30</span>%</label>
-          <input type="range" id="watermarkOpacity" min="10" max="100" value="30" 
-                 style="width: 100%; margin: 8px 0 0;">
-        </div>
-        <div>
-          <label for="watermarkRotation">Rotación: <span id="watermarkRotationValue">45</span>°</label>
-          <input type="range" id="watermarkRotation" min="0" max="360" value="45" 
-                 style="width: 100%; margin: 8px 0 0;">
-        </div>
-      </div>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-        <div>
-          <label for="watermarkPositionX">Posición horizontal:</label>
-          <select id="watermarkPositionX" style="width: 100%; padding: 8px; margin: 8px 0 0;">
-            <option value="left">Izquierda</option>
-            <option value="center" selected>Centro</option>
-            <option value="right">Derecha</option>
-          </select>
-        </div>
-        <div>
-          <label for="watermarkPositionY">Posición vertical:</label>
-          <select id="watermarkPositionY" style="width: 100%; padding: 8px; margin: 8px 0 0;">
-            <option value="top">Arriba</option>
-            <option value="middle" selected>Centro</option>
-            <option value="bottom">Abajo</option>
-          </select>
-        </div>
-      </div>
-      
-      <div style="margin-bottom: 20px;">
-        <label>Capa:</label>
-        <div style="display: flex; gap: 15px; margin: 8px 0 0;">
-          <label style="display: flex; align-items: center;">
-            <input type="radio" name="watermarkLayer" value="over" checked> Encima del contenido
-          </label>
-          <label style="display: flex; align-items: center;">
-            <input type="radio" name="watermarkLayer" value="under"> Debajo del contenido
-          </label>
-        </div>
-      </div>
-    
-      <div class="text-modal-actions" style="padding: 0 10px;">
-        <button id="cancelWatermarkBtn" class="pdf-button secondary">
-          <i class="fas fa-times"></i> Cancelar
-        </button>
-        <button id="applyWatermarkBtn" class="pdf-button">
-          <i class="fas fa-stamp"></i> Aplicar marca
-        </button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-});
 
 // Función auxiliar para convertir hex a rgb
 function hexToRgb(hex) {
@@ -1444,21 +1332,7 @@ function hexToRgb(hex) {
   return { r, g, b };
 }
 
-// Event listener para el botón de marca de agua
-document.getElementById('watermarkBtn').addEventListener('click', () => {
-  const modal = document.createElement('div');
-  modal.className = 'text-modal watermark-modal';
-  
-  modal.innerHTML = `
-    <div class="text-modal-content">
-      <!-- Mantén tu HTML del modal aquí -->
-    </div>
-  `;
-
-  // Configuración de eventos del modal
-  setupWatermarkModal(modal);
-});
-
+// Función para configurar el modal
 function setupWatermarkModal(modal) {
   // Elementos del modal
   const watermarkTypeRadios = modal.querySelectorAll('input[name="watermarkType"]');
@@ -1632,6 +1506,121 @@ function applyWatermarkLayer(page, pdfDoc, layer, drawFunction) {
     page.pushOperators(pdfDoc.context().operator('Q'));
   }
 }
+
+// Event listener único para el botón de marca de agua
+watermarkBtn.addEventListener('click', () => {
+  const modal = document.createElement('div');
+  modal.className = 'text-modal watermark-modal';
+  
+  modal.innerHTML = `
+    <div class="text-modal-content">
+      <h3 style="margin: 0 0 15px 0; color: #1f2f40; padding: 0 10px;">Añadir marca de agua a PDF</h3>
+      
+      <div style="margin-bottom: 15px;">
+        <label for="watermarkPdfInput">Seleccionar PDF:</label>
+        <input type="file" id="watermarkPdfInput" accept="application/pdf" style="width: 100%; margin: 8px 0 15px;">
+      </div>
+      
+      <div style="margin-bottom: 15px;">
+        <label>Tipo de marca de agua:</label>
+        <div style="display: flex; gap: 15px; margin: 8px 0 15px;">
+          <label style="display: flex; align-items: center;">
+            <input type="radio" name="watermarkType" value="text" checked> Texto
+          </label>
+          <label style="display: flex; align-items: center;">
+            <input type="radio" name="watermarkType" value="image"> Imagen
+          </label>
+        </div>
+      </div>
+      
+      <div id="textWatermarkOptions">
+        <div style="margin-bottom: 15px;">
+          <label for="watermarkText">Texto:</label>
+          <input type="text" id="watermarkText" placeholder="Ej: CONFIDENCIAL" 
+                 style="width: 100%; padding: 8px; margin: 8px 0 15px;">
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+          <div>
+            <label for="watermarkFontSize">Tamaño:</label>
+            <input type="number" id="watermarkFontSize" value="48" min="8" max="200" 
+                   style="width: 100%; padding: 8px; margin: 8px 0 0;">
+          </div>
+          <div>
+            <label for="watermarkColor">Color:</label>
+            <input type="color" id="watermarkColor" value="#000000" 
+                   style="width: 100%; height: 36px; padding: 2px; margin: 8px 0 0;">
+          </div>
+        </div>
+      </div>
+      
+      <div id="imageWatermarkOptions" style="display: none; margin-bottom: 15px;">
+        <label for="watermarkImageInput">Seleccionar imagen:</label>
+        <input type="file" id="watermarkImageInput" accept="image/*" style="width: 100%; margin: 8px 0 15px;">
+        
+        <label for="watermarkImageScale">Escala: <span id="watermarkImageScaleValue">50</span>%</label>
+        <input type="range" id="watermarkImageScale" min="10" max="200" value="50" 
+               style="width: 100%; margin: 8px 0 15px;">
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div>
+          <label for="watermarkOpacity">Transparencia: <span id="watermarkOpacityValue">30</span>%</label>
+          <input type="range" id="watermarkOpacity" min="10" max="100" value="30" 
+                 style="width: 100%; margin: 8px 0 0;">
+        </div>
+        <div>
+          <label for="watermarkRotation">Rotación: <span id="watermarkRotationValue">45</span>°</label>
+          <input type="range" id="watermarkRotation" min="0" max="360" value="45" 
+                 style="width: 100%; margin: 8px 0 0;">
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div>
+          <label for="watermarkPositionX">Posición horizontal:</label>
+          <select id="watermarkPositionX" style="width: 100%; padding: 8px; margin: 8px 0 0;">
+            <option value="left">Izquierda</option>
+            <option value="center" selected>Centro</option>
+            <option value="right">Derecha</option>
+          </select>
+        </div>
+        <div>
+          <label for="watermarkPositionY">Posición vertical:</label>
+          <select id="watermarkPositionY" style="width: 100%; padding: 8px; margin: 8px 0 0;">
+            <option value="top">Arriba</option>
+            <option value="middle" selected>Centro</option>
+            <option value="bottom">Abajo</option>
+          </select>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label>Capa:</label>
+        <div style="display: flex; gap: 15px; margin: 8px 0 0;">
+          <label style="display: flex; align-items: center;">
+            <input type="radio" name="watermarkLayer" value="over" checked> Encima del contenido
+          </label>
+          <label style="display: flex; align-items: center;">
+            <input type="radio" name="watermarkLayer" value="under"> Debajo del contenido
+          </label>
+        </div>
+      </div>
+    
+      <div class="text-modal-actions" style="padding: 0 10px;">
+        <button id="cancelWatermarkBtn" class="pdf-button secondary">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
+        <button id="applyWatermarkBtn" class="pdf-button">
+          <i class="fas fa-stamp"></i> Aplicar marca
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  setupWatermarkModal(modal);
+});
 
 </script>
 
