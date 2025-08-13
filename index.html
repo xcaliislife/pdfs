@@ -1269,7 +1269,9 @@ async function createSimplePdf(text) {
     showToast(`Procesando documento (${wordCount} palabras)...`, 'info');
     
     const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica, {
+      customName: "Helvetica-Unicode"
+    });
     
     let page = pdfDoc.addPage([595, 842]);
     const margin = 50;
