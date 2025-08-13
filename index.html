@@ -1321,7 +1321,6 @@ async function createSimplePdf(text) {
 
 
 // Elementos para marca de agua
-// Elementos para marca de agua
 const watermarkBtn = document.getElementById('watermarkBtn');
 const { PDFDocument, StandardFonts, rgb, degrees, BlendMode } = PDFLib;
 
@@ -1612,14 +1611,14 @@ watermarkBtn.addEventListener('click', () => {
       </div>
       
       <div style="margin-bottom: 20px;">
-    <div style="display: flex; gap: 10px; margin: 8px 0 0; flex-wrap: nowrap;">
-      <label style="display: flex; justify content;">
-        <input type="radio" name="watermarkLayer" value="over" checked> Encima del contenido
-      </label>
-      <label style="display: flex; justify content;">
-        <input type="radio" name="watermarkLayer" value="under"> Debajo del contenido
-      </label>
-    </div>
+  <div style="display: flex; gap: 10px; margin: 8px 0 0;">
+    <label style="display: flex; align-items: center; gap: 6px;">
+      <input type="radio" name="watermarkLayer" value="over" checked> Encima del contenido
+    </label>
+    <label style="display: flex; align-items: center; gap: 6px;">
+      <input type="radio" name="watermarkLayer" value="under"> Debajo del contenido
+    </label>
+  </div>
 </div>
 
     
