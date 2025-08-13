@@ -1484,20 +1484,71 @@ async function applyWatermark(modal) {
       }
     }
     
-    const modifiedPdfBytes = await pdfDoc.save();
-    const fileName = await getCustomFileName('PDF_con_Marca_de_Agua.pdf');
+const modifiedPdfBytes = await pdfDoc.save();
+const fileName = await getCustomFileName('PDF_con_Marca_de_Agua.pdf');
+
+// Usar la función mejorada de guardado
+await downloadAndSavePDF(pdfDoc, fileName);
+
+showToast('Marca de agua añadida correctamente');
+} catch (error) {
+  console.error('Error al añadir marca de agua:', error);
+  showToast(`Error: ${error.message}`, 'error');
+  throw error;
+}
+}
+
+async function downloadAndSavePDF(pdfDoc, fileName) {
+  try {
+    const pdfBytes = await pdfDoc.save();
     
-    // Descargar el archivo
-    const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+    // 1. Guardar en IndexedDB
+    const tx = db.transaction('pdfs', 'readwrite');
+    const store = tx.objectStore('pdfs');
+    
+    await new Promise((resolve, reject) => {
+      const request = store.add({
+        name: fileName,
+        blob: new Blob([pdfBytes], { type: 'application/pdf' }),
+        date: new Date()
+      });
+      
+      request.onsuccess = () => resolve();
+      request.onerror = (e) => {
+        console.error('Error al guardar en IndexedDB:', e);
+        reject(e);
+      };
+    });
+    
+    // 2. Descargar el archivo
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    link.href = url;
     link.download = fileName;
+    document.body.appendChild(link);
     link.click();
     
-    showToast('Marca de agua añadida correctamente');
+    // 3. Limpieza y actualización
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      displayFiles(); // Actualizar el historial
+    }, 100);
+    
   } catch (error) {
-    console.error('Error al añadir marca de agua:', error);
-    showToast(`Error: ${error.message}`, 'error');
+    console.error('Error en downloadAndSavePDF:', error);
+    // Modo de respaldo si falla IndexedDB
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    showToast('PDF descargado (sin historial)', 'warning');
     throw error;
   }
 }
