@@ -1100,11 +1100,13 @@ function showTextInputDialog() {
         flex-direction: column;
       ">
         <h3 style="margin-top: 0">Crear PDF desde texto</h3>
-      `<div class="format-toolbar" style="margin-bottom: 8px; display: flex; gap: 5px;">
+      
+
+     <div class="format-toolbar" style="margin-bottom: 8px; display: flex; gap: 5px;">
      <button data-style="bold"><i class="fas fa-bold"></i></button>
      <button data-style="italic"><i class="fas fa-italic"></i></button>
      <button data-style="list"><i class="fas fa-list-ul"></i></button>
-   </div>`
+   </div>
 
         <textarea 
           id="textInput" 
@@ -1163,7 +1165,7 @@ textToPdfBtn.addEventListener('click', () => {
         class="text-modal-textarea"
         placeholder="Escribe tu texto aquí..."
       ></textarea>
-      `<div class="char-counter" style="text-align: right; font-size: 12px; color: #666;">0/5000</div>`
+      <div class="char-counter" style="text-align: right; font-size: 12px; color: #666;">0/5000</div>
       <div class="text-modal-actions">
         <button id="cancelTextBtn" class="responsive-btn" style="background: #6c757d;">
           <i class="fas fa-times"></i> Cancelar
