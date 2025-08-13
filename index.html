@@ -353,6 +353,7 @@
 }
 
 /* Estilos para el modal y barra de herramientas */
+/* Modal */
 .text-modal {
   position: fixed;
   top: 0;
@@ -379,40 +380,13 @@
   flex-direction: column;
 }
 
-.format-toolbar {
-  display: flex;
-  gap: 8px;
-  padding: 8px 0;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #eee;
-}
-
-.format-btn {
-  background: none;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 4px;
-  color: #555;
-  transition: all 0.2s;
-}
-
-.format-btn:hover {
-  background: #f0f0f0;
-}
-
-.format-btn.active {
-  background: #e0e0e0;
-  color: #000;
-  border-color: #bbb;
-}
-
+/* Área de texto */
 .text-modal-textarea {
   width: 100%;
   flex-grow: 1;
-  min-height: 200px;
-  padding: 12px;
-  margin-bottom: 10px;
+  min-height: 300px;
+  padding: 15px;
+  margin-bottom: 15px;
   border: 1px solid #ddd;
   border-radius: 4px;
   resize: vertical;
@@ -421,20 +395,46 @@
   line-height: 1.5;
 }
 
-.char-counter {
+/* Contador de palabras */
+.word-counter {
   text-align: right;
-  font-size: 12px;
+  font-size: 13px;
   color: #666;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
 }
 
+/* Botones */
 .text-modal-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 15px;
 }
 
-@media (max-width: 480px) {
+.pdf-button {
+  background: #f8500a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.pdf-button:hover {
+  background: #db4403;
+}
+
+.pdf-button.secondary {
+  background: #6c757d;
+}
+
+.pdf-button.secondary:hover {
+  background: #5a6268;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
   .text-modal {
     padding: 10px;
   }
@@ -445,11 +445,11 @@
   
   .text-modal-actions {
     flex-direction: column;
+    gap: 10px;
   }
   
-  .format-toolbar {
-    justify-content: center;
-    flex-wrap: wrap;
+  .pdf-button {
+    width: 100%;
   }
 }
 
@@ -496,12 +496,9 @@
   <button id="orderPagesBtn">Guardar PDF ordenado</button>
 </div>
 
-<div class="section">
-  <label>Texto a PDF</label>
-  <button id="textToPdfBtn" class="responsive-btn">
-    <i class="fas fa-file-alt"></i> Crear PDF desde texto
-  </button>
-</div>
+<button id="textToPdfBtn" class="pdf-button">
+  <i class="fas fa-file-pdf"></i> Crear PDF desde texto
+</button>
 
   <a id="downloadLink" href="#" style="display:none;" download="output.pdf"></a>
 
@@ -1089,38 +1086,30 @@ toast.addEventListener('click', () => {
 });
 }
 
+  // Texto a PDF
+
 const textToPdfBtn = document.getElementById('textToPdfBtn');
 
-// Función para mostrar el diálogo de texto con formatos
 textToPdfBtn.addEventListener('click', () => {
+  // Crear modal
   const modal = document.createElement('div');
   modal.className = 'text-modal';
   
   modal.innerHTML = `
     <div class="text-modal-content">
-      <h3 style="margin-top: 0; color: #1f2f40;">Crear PDF desde texto</h3>
+      <h3 style="margin-top: 0; margin-bottom: 15px; color: #333;">Crear PDF desde texto</h3>
       
-      <div class="format-toolbar">
-        <button class="format-btn" data-format="bold" title="Negrita">
-          <i class="fas fa-bold"></i>
-        </button>
-        <button class="format-btn" data-format="italic" title="Itálica">
-          <i class="fas fa-italic"></i>
-        </button>
-        <button class="format-btn" data-format="underline" title="Subrayado">
-          <i class="fas fa-underline"></i>
-        </button>
-      </div>
+      <textarea class="text-modal-textarea" 
+                placeholder="Escribe tu texto aquí (máximo 11,000 palabras)..."></textarea>
       
-      <textarea class="text-modal-textarea" placeholder="Escribe tu texto aquí..."></textarea>
-      <div class="char-counter">0/5000</div>
+      <div class="word-counter">0/11,000 palabras</div>
       
       <div class="text-modal-actions">
-        <button id="cancelTextBtn" class="responsive-btn" style="background: #6c757d;">
+        <button id="cancelPdfBtn" class="pdf-button secondary">
           <i class="fas fa-times"></i> Cancelar
         </button>
-        <button id="generatePdfBtn" class="responsive-btn">
-          <i class="fas fa-file-pdf"></i> Generar PDF
+        <button id="generatePdfBtn" class="pdf-button">
+          <i class="fas fa-file-pdf"></i> Crear PDF
         </button>
       </div>
     </div>
@@ -1130,49 +1119,17 @@ textToPdfBtn.addEventListener('click', () => {
   const textarea = modal.querySelector('textarea');
   textarea.focus();
   
-  // Contador de caracteres
+  // Contador de palabras
+  const wordCounter = modal.querySelector('.word-counter');
+  
   textarea.addEventListener('input', () => {
-    const counter = modal.querySelector('.char-counter');
-    counter.textContent = `${textarea.value.length}/5000`;
-  });
-
-  // Botones de formato
-  const formatButtons = modal.querySelectorAll('.format-btn');
-  formatButtons.forEach(btn => {
-    btn.addEventListener('click', function() {
-      this.classList.toggle('active');
-      applyFormat(this.dataset.format);
-    });
-  });
-
-  function applyFormat(format) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
+    const text = textarea.value.trim();
+    const wordCount = text ? text.split(/\s+/).length : 0;
+    wordCounter.textContent = `${wordCount.toLocaleString()}/11,000 palabras`;
     
-    if (selectedText) {
-      let wrappedText = selectedText;
-      let newCursorPos = end;
-      
-      switch(format) {
-        case 'bold':
-          wrappedText = `**${selectedText}**`;
-          newCursorPos += 4;
-          break;
-        case 'italic':
-          wrappedText = `_${selectedText}_`;
-          newCursorPos += 2;
-          break;
-        case 'underline':
-          wrappedText = `<u>${selectedText}</u>`;
-          newCursorPos += 7;
-          break;
-      }
-      
-      textarea.setRangeText(wrappedText, start, end, 'select');
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    }
-  }
+    // Deshabilitar botón si se excede el límite
+    modal.querySelector('#generatePdfBtn').disabled = wordCount > 11000;
+  });
 
   // Función para cerrar el modal
   const closeModal = () => {
@@ -1182,17 +1139,24 @@ textToPdfBtn.addEventListener('click', () => {
   // Generar PDF
   modal.querySelector('#generatePdfBtn').addEventListener('click', async () => {
     const text = textarea.value.trim();
+    
     if (!text) {
       showToast('Por favor ingresa algún texto', 'error');
       return;
     }
     
+    const wordCount = text.split(/\s+/).length;
+    if (wordCount > 11000) {
+      showToast('El texto excede el límite de 11,000 palabras', 'error');
+      return;
+    }
+    
     closeModal();
-    await createFormattedPdf(text);
+    await createSimplePdf(text);
   });
   
   // Cancelar
-  modal.querySelector('#cancelTextBtn').addEventListener('click', closeModal);
+  modal.querySelector('#cancelPdfBtn').addEventListener('click', closeModal);
   
   // Cerrar al hacer clic fuera del contenido
   modal.addEventListener('click', (e) => {
@@ -1200,169 +1164,81 @@ textToPdfBtn.addEventListener('click', () => {
   });
 });
 
-// Función mejorada para crear PDF con formatos visibles
-async function createFormattedPdf(text) {
+// Función simple para crear PDF
+async function createSimplePdf(text) {
   try {
-    const fileName = await getCustomFileName('Documento_Formateado.pdf');
+    const fileName = await getCustomFileName('Documento.pdf');
     const pdfDoc = await PDFDocument.create();
-    let page = pdfDoc.addPage([550, 750]);
+    let page = pdfDoc.addPage([595, 842]); // Tamaño A4
     
-    // Cargamos las fuentes necesarias
-    const { rgb } = PDFLib;
-    const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
-    const boldItalicFont = await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
-    
-    // Configuración de formato
+    // Configuración
     const margin = 50;
     const fontSize = 12;
-    const lineHeight = fontSize * 1.2;
-    let y = page.getHeight() - margin - fontSize;
+    const lineHeight = fontSize * 1.5;
+    let y = page.getHeight() - margin;
     
-    // Procesamos el texto con formato
-    const paragraphs = text.split('\n');
+    // Fuente
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    
+    // Dividir texto en párrafos
+    const paragraphs = text.split('\n').filter(p => p.trim().length > 0);
     
     for (const paragraph of paragraphs) {
-      // Analizamos el formato del texto
-      const fragments = parseFormattedText(paragraph);
-      let currentX = margin;
-      let currentLineFragments = [];
-      let currentLineWidth = 0;
+      const words = paragraph.split(/\s+/);
+      let currentLine = '';
       
-      for (const fragment of fragments) {
-        const font = getFontForFragment(fragment, regularFont, boldFont, italicFont, boldItalicFont);
-        const fragmentWidth = font.widthOfTextAtSize(fragment.text, fontSize);
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const testWidth = font.widthOfTextAtSize(testLine, fontSize);
         
-        // Verificamos si cabe en la línea actual
-        if (currentX + fragmentWidth > (page.getWidth() - margin)) {
-          // Dibujamos la línea actual
-          drawTextLine(page, currentLineFragments, margin, y, fontSize, 
-                     regularFont, boldFont, italicFont, boldItalicFont);
+        if (testWidth > (page.getWidth() - 2 * margin)) {
+          // Dibujar línea actual
+          page.drawText(currentLine, {
+            x: margin,
+            y,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+          });
           
-          // Nueva línea
           y -= lineHeight;
-          currentX = margin;
-          currentLineFragments = [fragment];
-          currentLineWidth = fragmentWidth;
+          currentLine = word;
           
-          // Verificamos si necesitamos nueva página
+          // Nueva página si es necesario
           if (y < margin) {
-            page = pdfDoc.addPage([550, 750]);
-            y = page.getHeight() - margin - fontSize;
+            page = pdfDoc.addPage([595, 842]);
+            y = page.getHeight() - margin;
           }
         } else {
-          currentLineFragments.push(fragment);
-          currentX += fragmentWidth;
-          currentLineWidth += fragmentWidth;
+          currentLine = testLine;
         }
       }
       
-      // Dibujamos la última línea del párrafo
-      if (currentLineFragments.length > 0) {
-        drawTextLine(page, currentLineFragments, margin, y, fontSize, 
-                   regularFont, boldFont, italicFont, boldItalicFont);
-        y -= lineHeight * 1.5; // Espacio entre párrafos
+      // Dibujar última línea
+      if (currentLine) {
+        page.drawText(currentLine, {
+          x: margin,
+          y,
+          size: fontSize,
+          font,
+          color: rgb(0, 0, 0),
+        });
+        y -= lineHeight * 2; // Espacio entre párrafos
       }
       
-      // Verificamos si necesitamos nueva página
+      // Verificar nueva página
       if (y < margin) {
-        page = pdfDoc.addPage([550, 750]);
-        y = page.getHeight() - margin - fontSize;
+        page = pdfDoc.addPage([595, 842]);
+        y = page.getHeight() - margin;
       }
     }
     
     await downloadAndSavePDF(pdfDoc, fileName);
-    showToast('PDF formateado creado exitosamente');
+    showToast('PDF creado exitosamente');
     
   } catch (error) {
     console.error('Error al crear PDF:', error);
-    showToast(`Error al crear PDF: ${error.message}`, 'error');
-  }
-}
-
-// Función para analizar texto con formato
-function parseFormattedText(text) {
-  const fragments = [];
-  let currentText = '';
-  let bold = false;
-  let italic = false;
-  let underline = false;
-  let i = 0;
-  
-  while (i < text.length) {
-    // Detección de formatos
-    if (text.substr(i, 2) === '**' && !italic) {
-      if (currentText) fragments.push({ text: currentText, bold, italic, underline });
-      bold = !bold;
-      currentText = '';
-      i += 2;
-    } 
-    else if (text.substr(i, 1) === '_' && !bold) {
-      if (currentText) fragments.push({ text: currentText, bold, italic, underline });
-      italic = !italic;
-      currentText = '';
-      i += 1;
-    }
-    else if (text.substr(i, 3) === '<u>') {
-      if (currentText) fragments.push({ text: currentText, bold, italic, underline });
-      underline = true;
-      currentText = '';
-      i += 3;
-    }
-    else if (text.substr(i, 4) === '</u>') {
-      if (currentText) fragments.push({ text: currentText, bold, italic, underline });
-      underline = false;
-      currentText = '';
-      i += 4;
-    }
-    else {
-      currentText += text[i];
-      i++;
-    }
-  }
-  
-  if (currentText) fragments.push({ text: currentText, bold, italic, underline });
-  
-  return fragments;
-}
-
-// Función para obtener la fuente adecuada
-function getFontForFragment(fragment, regularFont, boldFont, italicFont, boldItalicFont) {
-  if (fragment.bold && fragment.italic) return boldItalicFont;
-  if (fragment.bold) return boldFont;
-  if (fragment.italic) return italicFont;
-  return regularFont;
-}
-
-// Función para dibujar una línea de texto con formatos
-function drawTextLine(page, fragments, x, y, fontSize, regularFont, boldFont, italicFont, boldItalicFont) {
-  let currentX = x;
-  
-  for (const fragment of fragments) {
-    const font = getFontForFragment(fragment, regularFont, boldFont, italicFont, boldItalicFont);
-    
-    page.drawText(fragment.text, {
-      x: currentX,
-      y,
-      size: fontSize,
-      font,
-      color: rgb(0, 0, 0),
-      underline: fragment.underline
-    });
-    
-    // Dibujar subrayado si está activo
-    if (fragment.underline) {
-      const textWidth = font.widthOfTextAtSize(fragment.text, fontSize);
-      page.drawLine({
-        start: { x: currentX, y: y - 2 },
-        end: { x: currentX + textWidth, y: y - 2 },
-        thickness: 0.5,
-        color: rgb(0, 0, 0)
-      });
-    }
-    
-    currentX += font.widthOfTextAtSize(fragment.text, fontSize);
+    showToast('Error al crear el PDF', 'error');
   }
 }
 
