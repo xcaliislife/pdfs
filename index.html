@@ -586,6 +586,16 @@
   <button id="splitPdfBtn">Dividir PDF</button>
 </div>
 
+<div class="section">
+  <label for="extractPdfInput">Extraer páginas de PDF</label>
+  <input id="extractPdfInput" type="file" accept="application/pdf">
+  <div id="extractOptions" style="margin-top: 10px;">
+    <label>Especifica páginas a extraer (ej: 1,3-5,8)</label>
+    <input type="text" id="pageRange" placeholder="Ej: 1,3-5,8" style="width: 100%; padding: 8px; margin: 8px 0;">
+  </div>
+  <button id="extractPagesBtn">Extraer páginas</button>
+</div>
+
   <a id="downloadLink" href="#" style="display:none;" download="output.pdf"></a>
 
 </div>
@@ -1769,6 +1779,90 @@ splitPdfBtn.addEventListener('click', async () => {
   } catch (error) {
     console.error('Error al dividir PDF:', error);
     showToast(`Error al dividir PDF: ${error.message}`, 'error');
+  }
+});
+
+
+
+const extractPdfInput = document.getElementById('extractPdfInput');
+const pageRangeInput = document.getElementById('pageRange');
+const extractPagesBtn = document.getElementById('extractPagesBtn');
+
+// Función para parsear el rango de páginas (agregar con tus otras funciones auxiliares)
+function parsePageRange(rangeStr, maxPages) {
+  const parts = rangeStr.split(',');
+  const pageNumbers = new Set();
+  
+  for (const part of parts) {
+    if (part.includes('-')) {
+      // Es un rango (ej: 3-5)
+      const [start, end] = part.split('-').map(n => parseInt(n.trim()));
+      if (!isNaN(start) && !isNaN(end)) {
+        const realStart = Math.max(1, Math.min(start, maxPages));
+        const realEnd = Math.max(1, Math.min(end, maxPages));
+        
+        for (let i = realStart; i <= realEnd; i++) {
+          pageNumbers.add(i - 1); // Restamos 1 porque las páginas son 0-based en PDF-Lib
+        }
+      }
+    } else {
+      // Es una página individual (ej: 3)
+      const pageNum = parseInt(part.trim());
+      if (!isNaN(pageNum)) {
+        const realPageNum = Math.max(1, Math.min(pageNum, maxPages));
+        pageNumbers.add(realPageNum - 1); // Restamos 1 porque las páginas son 0-based en PDF-Lib
+      }
+    }
+  }
+  
+  return Array.from(pageNumbers).sort((a, b) => a - b);
+}
+
+// Event listener para el botón de extraer páginas (agregar con tus otros event listeners)
+extractPagesBtn.addEventListener('click', async () => {
+  if (!extractPdfInput.files[0]) {
+    showToast('Selecciona un archivo PDF primero', 'error');
+    return;
+  }
+
+  const pageRangeText = pageRangeInput.value.trim();
+  if (!pageRangeText) {
+    showToast('Especifica las páginas a extraer', 'error');
+    return;
+  }
+
+  try {
+    showToast('Procesando extracción de páginas...', 'info');
+    
+    const arrayBuffer = await extractPdfInput.files[0].arrayBuffer();
+    const originalPdf = await PDFDocument.load(arrayBuffer);
+    const pageCount = originalPdf.getPageCount();
+    
+    // Parsear el rango de páginas
+    const pageNumbers = parsePageRange(pageRangeText, pageCount);
+    
+    if (pageNumbers.length === 0) {
+      showToast('No se especificaron páginas válidas', 'error');
+      return;
+    }
+
+    // Crear nuevo PDF con las páginas extraídas
+    const newPdf = await PDFDocument.create();
+    const copiedPages = await newPdf.copyPages(originalPdf, pageNumbers);
+    copiedPages.forEach(page => newPdf.addPage(page));
+    
+    const originalName = extractPdfInput.files[0].name.replace('.pdf', '');
+    const defaultName = `${originalName}_paginas-${pageRangeText}.pdf`;
+    
+    // Solicitar nombre personalizado
+    const fileName = await getCustomFileName(defaultName);
+    
+    await downloadAndSavePDF(newPdf, fileName);
+    showToast(`"${fileName}" creado con páginas ${pageRangeText}`, 'success');
+    
+  } catch (error) {
+    console.error('Error al extraer páginas:', error);
+    showToast(`Error al extraer páginas: ${error.message}`, 'error');
   }
 });
 
