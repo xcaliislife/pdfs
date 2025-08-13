@@ -1531,20 +1531,20 @@ watermarkBtn.addEventListener('click', () => {
   
   modal.innerHTML = `
     <div class="text-modal-content">
-      <h3 style="margin: 0 0 20px 0; color: #000000; padding: 0 0;">Añadir marca de agua</h3>
+      <h3 style="margin: 0 0 14px 0; color: #000000; padding: 0 0;">Añadir marca de agua</h3>
       
       <div style="margin-bottom: 15px;">
         <input type="file" id="watermarkPdfInput" accept="application/pdf" style="width: 100%; margin: 8px 0 15px;">
       </div>
       
-      <div style="margin-bottom: 15px;">
+      <div style="margin-bottom: 10px;">
         <label>Tipo de marca de agua:</label>
         <div style="display: flex; gap: 15px; margin: 8px 0 15px;">
           <label style="display: flex; align-items: center;">
-            <input type="radio" name="watermarkType" value="text" checked> Texto
+            <input type="radio" name="watermarkType" value="text" checked>  Texto
           </label>
           <label style="display: flex; align-items: center;">
-            <input type="radio" name="watermarkType" value="image"> Imagen
+            <input type="radio" name="watermarkType" value="image">  Imagen
           </label>
         </div>
       </div>
@@ -1553,13 +1553,13 @@ watermarkBtn.addEventListener('click', () => {
         <div style="margin-bottom: 15px;">
           <label for="watermarkText">Texto:</label>
           <input type="text" id="watermarkText" placeholder="Ej: CONFIDENCIAL" 
-                 style="width: 100%; padding: 8px; margin: 8px 0 15px;">
+                 style="width: calc(100% - 30px); margin: 8px 0 15px;">
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
           <div>
             <label for="watermarkFontSize">Tamaño:</label>
-            <input type="number" id="watermarkFontSize" value="48" min="8" max="200" 
+            <input type="number" id="watermarkFontSize" value="72" min="8" max="200" 
                    style="width: 100%; padding: 8px; margin: 8px 0 0;">
           </div>
           <div>
@@ -1614,10 +1614,10 @@ watermarkBtn.addEventListener('click', () => {
       <div style="margin-bottom: 20px;">
         <div style="display: flex; gap: 10px; margin: 8px 0 0;">
           <label style="display: flex; align-items: center;">
-            <input type="radio" name="watermarkLayer" value="over" checked> Encima del contenido
+            <input type="radio" name="watermarkLayer" value="over" checked>  Encima del contenido
           </label>
-          <label style="display: flex; align-items: center;">
-            <input type="radio" name="watermarkLayer" value="under"> Debajo del contenido
+          <label style="display: flex;">
+            <input type="radio" name="watermarkLayer" value="under">  Debajo del contenido
           </label>
         </div>
       </div>
