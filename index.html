@@ -352,6 +352,7 @@
   }
 }
 /* Estilos para el diálogo de texto responsive */
+/* Estilos mejorados para el modal */
 .text-modal {
   position: fixed;
   top: 0;
@@ -371,15 +372,47 @@
   background: white;
   padding: 20px;
   border-radius: 8px;
-  width: 100%;
+  width: calc(100% - 40px); /* Asegura padding en ambos lados */
   max-width: 600px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
+/* Barra de herramientas de formato */
+.format-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.format-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: #555;
+  transition: all 0.2s;
+}
+
+.format-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.format-btn.active {
+  background: #e0e0e0;
+  color: #000;
+}
+
+/* Área de texto corregida */
 .text-modal-textarea {
-  width: 100%;
+  width: calc(100% - 24px); /* Ajuste para padding interno */
   flex-grow: 1;
   min-height: 200px;
   padding: 12px;
@@ -389,17 +422,19 @@
   resize: vertical;
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
+  line-height: 1.5;
 }
 
+/* Resto de estilos se mantienen igual */
 .text-modal-actions {
   display: flex;
   gap: 10px;
+  margin-top: 15px;
 }
 
 .responsive-btn {
   width: 100%;
   padding: 12px;
-  margin-bottom: 10px;
   background: #f8500a;
   color: white;
   border: none;
@@ -421,17 +456,18 @@
   
   .text-modal-content {
     padding: 15px;
+    width: calc(100% - 20px);
   }
   
   .text-modal-actions {
     flex-direction: column;
   }
   
-  .text-modal-actions button {
-    width: 100%;
+  .format-toolbar {
+    gap: 6px;
   }
 }
-   
+
   </style>
 </head>
 <body>
@@ -1153,21 +1189,29 @@ function showTextInputDialog() {
   });
 }
 
-// Función para crear PDF desde texto
-// Función para crear PDF desde texto
-textToPdfBtn.addEventListener('click', async () => {
-  // Crear el modal
+textToPdfBtn.addEventListener('click', () => {
   const modal = document.createElement('div');
   modal.className = 'text-modal';
   
   modal.innerHTML = `
     <div class="text-modal-content">
       <h3 style="margin-top: 0; color: #1f2f40;">Crear PDF desde texto</h3>
-      <textarea 
-        class="text-modal-textarea"
-        placeholder="Escribe tu texto aquí..."
-      ></textarea>
+      
+      <div class="format-toolbar">
+        <button class="format-btn" data-format="bold" title="Negrita">
+          <i class="fas fa-bold"></i>
+        </button>
+        <button class="format-btn" data-format="italic" title="Itálica">
+          <i class="fas fa-italic"></i>
+        </button>
+        <button class="format-btn" data-format="underline" title="Subrayado">
+          <i class="fas fa-underline"></i>
+        </button>
+      </div>
+      
+      <textarea class="text-modal-textarea" placeholder="Escribe tu texto aquí..."></textarea>
       <div class="char-counter" style="text-align: right; font-size: 12px; color: #666;">0/5000</div>
+      
       <div class="text-modal-actions">
         <button id="cancelTextBtn" class="responsive-btn" style="background: #6c757d;">
           <i class="fas fa-times"></i> Cancelar
@@ -1188,6 +1232,38 @@ textToPdfBtn.addEventListener('click', async () => {
     const counter = modal.querySelector('.char-counter');
     counter.textContent = `${textarea.value.length}/5000`;
   });
+
+  // Botones de formato
+  const formatButtons = modal.querySelectorAll('.format-btn');
+  formatButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      this.classList.toggle('active');
+      applyFormat(this.dataset.format);
+    });
+  });
+
+  function applyFormat(format) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    let formattedText = '';
+    
+    if (selectedText) {
+      switch(format) {
+        case 'bold':
+          formattedText = `**${selectedText}**`;
+          break;
+        case 'italic':
+          formattedText = `_${selectedText}_`;
+          break;
+        case 'underline':
+          formattedText = `<u>${selectedText}</u>`;
+          break;
+      }
+      
+      textarea.setRangeText(formattedText, start, end, 'end');
+    }
+  }
 
   // Función para cerrar el modal
   const closeModal = () => {
@@ -1210,77 +1286,7 @@ textToPdfBtn.addEventListener('click', async () => {
     }
     
     closeModal();
-    
-    try {
-      const fileName = await getCustomFileName('Documento_de_Texto.pdf');
-      const pdfDoc = await PDFDocument.create();
-      let page = pdfDoc.addPage([550, 750]);
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      
-      // Configuración de formato
-      const margin = 50;
-      const fontSize = 12;
-      const lineHeight = fontSize * 1.2;
-      let y = page.getHeight() - margin - fontSize;
-      
-      // Procesar texto
-      const paragraphs = text.split('\n');
-      for (const paragraph of paragraphs) {
-        const words = paragraph.split(/\s+/).filter(w => w.length > 0);
-        let currentLine = '';
-        
-        for (const word of words) {
-          const testLine = currentLine ? `${currentLine} ${word}` : word;
-          const testWidth = font.widthOfTextAtSize(testLine, fontSize);
-          
-          if (testWidth > (page.getWidth() - 2 * margin)) {
-            page.drawText(currentLine, {
-              x: margin,
-              y,
-              size: fontSize,
-              font,
-              color: rgb(0, 0, 0),
-            });
-            
-            y -= lineHeight;
-            currentLine = word;
-            
-            // Nueva página si es necesario
-            if (y < margin) {
-              page = pdfDoc.addPage([550, 750]);
-              y = page.getHeight() - margin - fontSize;
-            }
-          } else {
-            currentLine = testLine;
-          }
-        }
-        
-        // Dibujar última línea del párrafo
-        if (currentLine) {
-          page.drawText(currentLine, {
-            x: margin,
-            y,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-          });
-          y -= lineHeight * 1.5; // Espacio extra entre párrafos
-        }
-        
-        // Nueva página si es necesario
-        if (y < margin) {
-          page = pdfDoc.addPage([550, 750]);
-          y = page.getHeight() - margin - fontSize;
-        }
-      }
-      
-      await downloadAndSavePDF(pdfDoc, fileName);
-      showToast('PDF creado exitosamente');
-      
-    } catch (error) {
-      console.error('Error al crear PDF:', error);
-      showToast(`Error al crear PDF: ${error.message}`, 'error');
-    }
+    await createPdfFromText(text);
   });
   
   // Cancelar
@@ -1291,6 +1297,95 @@ textToPdfBtn.addEventListener('click', async () => {
     if (e.target === modal) closeModal();
   });
 });
+
+async function createPdfFromText(text) {
+  try {
+    const fileName = await getCustomFileName('Documento_de_Texto.pdf');
+    const pdfDoc = await PDFDocument.create();
+    let page = pdfDoc.addPage([550, 750]);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+    
+    // Configuración de formato
+    const margin = 50;
+    const fontSize = 12;
+    const lineHeight = fontSize * 1.2;
+    let y = page.getHeight() - margin - fontSize;
+    
+    // Procesar texto con formato Markdown básico
+    const paragraphs = text.split('\n');
+    for (const paragraph of paragraphs) {
+      let currentFont = font;
+      let currentText = paragraph;
+      let isBold = false;
+      let isItalic = false;
+      let isUnderline = false;
+      
+      // Procesar formato simple (soporta **bold**, _italic_ y <u>underline</u>)
+      if (currentText.includes('**') || currentText.includes('_') || currentText.includes('<u>')) {
+        // Implementación básica de formato - puedes mejorarla según necesidades
+        currentText = currentText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                                .replace(/_(.*?)_/g, '<i>$1</i>')
+                                .replace(/<u>(.*?)<\/u>/g, '<u>$1</u>');
+      }
+      
+      const words = currentText.split(/\s+/).filter(w => w.length > 0);
+      let currentLine = '';
+      
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const testWidth = currentFont.widthOfTextAtSize(testLine, fontSize);
+        
+        if (testWidth > (page.getWidth() - 2 * margin)) {
+          page.drawText(currentLine, {
+            x: margin,
+            y,
+            size: fontSize,
+            font: currentFont,
+            color: rgb(0, 0, 0),
+          });
+          
+          y -= lineHeight;
+          currentLine = word;
+          
+          // Nueva página si es necesario
+          if (y < margin) {
+            page = pdfDoc.addPage([550, 750]);
+            y = page.getHeight() - margin - fontSize;
+          }
+        } else {
+          currentLine = testLine;
+        }
+      }
+      
+      // Dibujar última línea del párrafo
+      if (currentLine) {
+        page.drawText(currentLine, {
+          x: margin,
+          y,
+          size: fontSize,
+          font: currentFont,
+          color: rgb(0, 0, 0),
+        });
+        y -= lineHeight * 1.5; // Espacio extra entre párrafos
+      }
+      
+      // Nueva página si es necesario
+      if (y < margin) {
+        page = pdfDoc.addPage([550, 750]);
+        y = page.getHeight() - margin - fontSize;
+      }
+    }
+    
+    await downloadAndSavePDF(pdfDoc, fileName);
+    showToast('PDF creado exitosamente');
+    
+  } catch (error) {
+    console.error('Error al crear PDF:', error);
+    showToast(`Error al crear PDF: ${error.message}`, 'error');
+  }
+}
 
 </script>
 
