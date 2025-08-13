@@ -396,7 +396,12 @@
   <button id="orderPagesBtn">Guardar PDF ordenado</button>
 </div>
 
-
+<div class="section">
+  <label>Texto a PDF</label>
+  <button id="textToPdfBtn" style="width:100%; margin-bottom:10px;">
+    <i class="fas fa-file-alt"></i> Crear PDF desde texto
+  </button>
+</div>
 
   <a id="downloadLink" href="#" style="display:none;" download="output.pdf"></a>
 
@@ -984,7 +989,150 @@ toast.addEventListener('click', () => {
 });
 }
 
+// Añade esto con los otros selectores de elementos
+const textToPdfBtn = document.getElementById('textToPdfBtn');
 
+// Función para mostrar el diálogo de texto
+function showTextInputDialog() {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.style = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    `;
+    
+    modal.innerHTML = `
+      <div style="
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+      ">
+        <h3 style="margin-top: 0">Crear PDF desde texto</h3>
+        <textarea 
+          id="textInput" 
+          style="
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+          "
+          placeholder="Escribe tu texto aquí..."
+        ></textarea>
+        <div style="display: flex; justify-content: space-between; gap: 10px;">
+          <button id="cancelTextBtn" style="padding: 8px 15px; background: #f0f0f0; flex:1;">Cancelar</button>
+          <button id="generatePdfBtn" style="padding: 8px 15px; background: #007bff; color: white; flex:1;">
+            <i class="fas fa-file-pdf"></i> Generar PDF
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const textInput = modal.querySelector('#textInput');
+    textInput.focus();
+    
+    modal.querySelector('#generatePdfBtn').addEventListener('click', async () => {
+      const text = textInput.value.trim();
+      if (text) {
+        modal.remove();
+        resolve(text);
+      } else {
+        showToast('Por favor ingresa algún texto', 'error');
+      }
+    });
+    
+    modal.querySelector('#cancelTextBtn').addEventListener('click', () => {
+      modal.remove();
+      resolve(null);
+    });
+  });
+}
+
+// Función para crear PDF desde texto
+textToPdfBtn.addEventListener('click', async () => {
+  const text = await showTextInputDialog();
+  if (!text) return;
+  
+  try {
+    const fileName = await getCustomFileName('Documento_de_Texto.pdf');
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([550, 750]); // Tamaño A4 aproximado en puntos
+    
+    // Configuración del texto
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontSize = 12;
+    const lineHeight = fontSize * 1.2;
+    const margin = 50;
+    let y = page.getHeight() - margin - fontSize;
+    
+    // Dividir el texto en líneas que caben en la página
+    const words = text.split(/\s+/);
+    let currentLine = '';
+    
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+      
+      if (testWidth > (page.getWidth() - 2 * margin)) {
+        // Dibujar la línea actual y pasar a la siguiente
+        page.drawText(currentLine, {
+          x: margin,
+          y,
+          size: fontSize,
+          font,
+          color: rgb(0, 0, 0),
+        });
+        
+        y -= lineHeight;
+        currentLine = word;
+        
+        // Verificar si necesitamos una nueva página
+        if (y < margin) {
+          const newPage = pdfDoc.addPage([550, 750]);
+          page = newPage;
+          y = page.getHeight() - margin - fontSize;
+        }
+      } else {
+        currentLine = testLine;
+      }
+    }
+    
+    // Dibujar la última línea
+    if (currentLine) {
+      page.drawText(currentLine, {
+        x: margin,
+        y,
+        size: fontSize,
+        font,
+        color: rgb(0, 0, 0),
+      });
+    }
+    
+    downloadAndSavePDF(pdfDoc, fileName);
+    showToast('PDF creado exitosamente desde el texto');
+    
+  } catch (error) {
+    showToast(`Error al crear PDF: ${error.message}`, 'error');
+  }
+});
 
 </script>
 
