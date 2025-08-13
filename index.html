@@ -351,7 +351,8 @@
     to { top: 15px; }
   }
 }
-/* Estilos para el modal de texto */
+
+/* Estilos para el modal y barra de herramientas */
 .text-modal {
   position: fixed;
   top: 0;
@@ -383,6 +384,7 @@
   gap: 8px;
   padding: 8px 0;
   margin-bottom: 10px;
+  border-bottom: 1px solid #eee;
 }
 
 .format-btn {
@@ -402,6 +404,7 @@
 .format-btn.active {
   background: #e0e0e0;
   color: #000;
+  border-color: #bbb;
 }
 
 .text-modal-textarea {
@@ -415,6 +418,7 @@
   resize: vertical;
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
+  line-height: 1.5;
 }
 
 .char-counter {
@@ -427,6 +431,7 @@
 .text-modal-actions {
   display: flex;
   gap: 10px;
+  margin-top: 10px;
 }
 
 @media (max-width: 480px) {
@@ -444,6 +449,7 @@
   
   .format-toolbar {
     justify-content: center;
+    flex-wrap: wrap;
   }
 }
 
@@ -1086,136 +1092,127 @@ toast.addEventListener('click', () => {
 const textToPdfBtn = document.getElementById('textToPdfBtn');
 
 // Función para mostrar el diálogo de texto con formatos
-function showTextInputDialog() {
-  return new Promise((resolve) => {
-    const modal = document.createElement('div');
-    modal.className = 'text-modal';
-    
-    modal.innerHTML = `
-      <div class="text-modal-content">
-        <h3 style="margin-top: 0; color: #1f2f40;">Crear PDF desde texto</h3>
-        
-        <div class="format-toolbar">
-          <button class="format-btn" data-format="bold" title="Negrita">
-            <i class="fas fa-bold"></i>
-          </button>
-          <button class="format-btn" data-format="italic" title="Itálica">
-            <i class="fas fa-italic"></i>
-          </button>
-          <button class="format-btn" data-format="underline" title="Subrayado">
-            <i class="fas fa-underline"></i>
-          </button>
-        </div>
-        
-        <textarea class="text-modal-textarea" placeholder="Escribe tu texto aquí..."></textarea>
-        <div class="char-counter">0/5000</div>
-        
-        <div class="text-modal-actions">
-          <button id="cancelTextBtn" class="responsive-btn" style="background: #6c757d;">
-            <i class="fas fa-times"></i> Cancelar
-          </button>
-          <button id="generatePdfBtn" class="responsive-btn">
-            <i class="fas fa-file-pdf"></i> Generar PDF
-          </button>
-        </div>
+textToPdfBtn.addEventListener('click', () => {
+  const modal = document.createElement('div');
+  modal.className = 'text-modal';
+  
+  modal.innerHTML = `
+    <div class="text-modal-content">
+      <h3 style="margin-top: 0; color: #1f2f40;">Crear PDF desde texto</h3>
+      
+      <div class="format-toolbar">
+        <button class="format-btn" data-format="bold" title="Negrita">
+          <i class="fas fa-bold"></i>
+        </button>
+        <button class="format-btn" data-format="italic" title="Itálica">
+          <i class="fas fa-italic"></i>
+        </button>
+        <button class="format-btn" data-format="underline" title="Subrayado">
+          <i class="fas fa-underline"></i>
+        </button>
       </div>
-    `;
-    
-    document.body.appendChild(modal);
-    const textarea = modal.querySelector('textarea');
-    textarea.focus();
-    
-    // Contador de caracteres
-    textarea.addEventListener('input', () => {
-      const counter = modal.querySelector('.char-counter');
-      counter.textContent = `${textarea.value.length}/5000`;
-    });
-
-    // Botones de formato
-    const formatButtons = modal.querySelectorAll('.format-btn');
-    formatButtons.forEach(btn => {
-      btn.addEventListener('click', function() {
-        this.classList.toggle('active');
-        applyFormat(this.dataset.format);
-      });
-    });
-
-    function applyFormat(format) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const selectedText = textarea.value.substring(start, end);
       
-      if (selectedText) {
-        let wrappedText = selectedText;
-        let newCursorPos = end;
-        
-        switch(format) {
-          case 'bold':
-            wrappedText = `**${selectedText}**`;
-            newCursorPos += 4; // Ajuste para ** **
-            break;
-          case 'italic':
-            wrappedText = `_${selectedText}_`;
-            newCursorPos += 2; // Ajuste para _ _
-            break;
-          case 'underline':
-            wrappedText = `<u>${selectedText}</u>`;
-            newCursorPos += 7; // Ajuste para <u></u>
-            break;
-        }
-        
-        textarea.setRangeText(wrappedText, start, end, 'select');
-        textarea.setSelectionRange(newCursorPos, newCursorPos);
-      }
-    }
-
-    // Función para cerrar el modal
-    const closeModal = () => {
-      document.body.removeChild(modal);
-      document.removeEventListener('keydown', handleEscape);
-    };
-
-    // Manejar tecla Escape
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') closeModal();
-    };
-    document.addEventListener('keydown', handleEscape);
-
-    // Generar PDF
-    modal.querySelector('#generatePdfBtn').addEventListener('click', async () => {
-      const text = textarea.value.trim();
-      if (!text) {
-        showToast('Por favor ingresa algún texto', 'error');
-        return;
-      }
+      <textarea class="text-modal-textarea" placeholder="Escribe tu texto aquí..."></textarea>
+      <div class="char-counter">0/5000</div>
       
-      closeModal();
-      await createPdfFromText(text);
-    });
-    
-    // Cancelar
-    modal.querySelector('#cancelTextBtn').addEventListener('click', () => {
-      closeModal();
-      resolve(null);
-    });
-    
-    // Cerrar al hacer clic fuera del contenido
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        closeModal();
-        resolve(null);
-      }
+      <div class="text-modal-actions">
+        <button id="cancelTextBtn" class="responsive-btn" style="background: #6c757d;">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
+        <button id="generatePdfBtn" class="responsive-btn">
+          <i class="fas fa-file-pdf"></i> Generar PDF
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  const textarea = modal.querySelector('textarea');
+  textarea.focus();
+  
+  // Contador de caracteres
+  textarea.addEventListener('input', () => {
+    const counter = modal.querySelector('.char-counter');
+    counter.textContent = `${textarea.value.length}/5000`;
+  });
+
+  // Botones de formato
+  const formatButtons = modal.querySelectorAll('.format-btn');
+  formatButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      this.classList.toggle('active');
+      applyFormat(this.dataset.format);
     });
   });
-}
 
-// Función para crear PDF desde texto con formatos
-async function createPdfFromText(text) {
+  function applyFormat(format) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    
+    if (selectedText) {
+      let wrappedText = selectedText;
+      let newCursorPos = end;
+      
+      switch(format) {
+        case 'bold':
+          wrappedText = `**${selectedText}**`;
+          newCursorPos += 4;
+          break;
+        case 'italic':
+          wrappedText = `_${selectedText}_`;
+          newCursorPos += 2;
+          break;
+        case 'underline':
+          wrappedText = `<u>${selectedText}</u>`;
+          newCursorPos += 7;
+          break;
+      }
+      
+      textarea.setRangeText(wrappedText, start, end, 'select');
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }
+  }
+
+  // Función para cerrar el modal
+  const closeModal = () => {
+    document.body.removeChild(modal);
+  };
+
+  // Generar PDF
+  modal.querySelector('#generatePdfBtn').addEventListener('click', async () => {
+    const text = textarea.value.trim();
+    if (!text) {
+      showToast('Por favor ingresa algún texto', 'error');
+      return;
+    }
+    
+    closeModal();
+    await createFormattedPdf(text);
+  });
+  
+  // Cancelar
+  modal.querySelector('#cancelTextBtn').addEventListener('click', closeModal);
+  
+  // Cerrar al hacer clic fuera del contenido
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+});
+
+// Función mejorada para crear PDF con formatos visibles
+async function createFormattedPdf(text) {
   try {
-    const fileName = await getCustomFileName('Documento_de_Texto.pdf');
+    const fileName = await getCustomFileName('Documento_Formateado.pdf');
     const pdfDoc = await PDFDocument.create();
     let page = pdfDoc.addPage([550, 750]);
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    
+    // Cargamos las fuentes necesarias
+    const { rgb } = PDFLib;
+    const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+    const boldItalicFont = await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
     
     // Configuración de formato
     const margin = 50;
@@ -1223,55 +1220,52 @@ async function createPdfFromText(text) {
     const lineHeight = fontSize * 1.2;
     let y = page.getHeight() - margin - fontSize;
     
-    // Procesar texto manteniendo saltos de línea
+    // Procesamos el texto con formato
     const paragraphs = text.split('\n');
     
     for (const paragraph of paragraphs) {
-      // Eliminar marcadores de formato pero mantener saltos
-      const cleanText = paragraph
-        .replace(/\*\*(.*?)\*\*/g, '$1')  // Quita **negrita**
-        .replace(/_(.*?)_/g, '$1')        // Quita _itálica_
-        .replace(/<u>(.*?)<\/u>/g, '$1'); // Quita <u>subrayado</u>
+      // Analizamos el formato del texto
+      const fragments = parseFormattedText(paragraph);
+      let currentX = margin;
+      let currentLineFragments = [];
+      let currentLineWidth = 0;
       
-      const words = cleanText.split(/\s+/).filter(w => w.length > 0);
-      let currentLine = '';
-      
-      for (const word of words) {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+      for (const fragment of fragments) {
+        const font = getFontForFragment(fragment, regularFont, boldFont, italicFont, boldItalicFont);
+        const fragmentWidth = font.widthOfTextAtSize(fragment.text, fontSize);
         
-        if (testWidth > (page.getWidth() - 2 * margin)) {
-          page.drawText(currentLine, {
-            x: margin,
-            y,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-          });
+        // Verificamos si cabe en la línea actual
+        if (currentX + fragmentWidth > (page.getWidth() - margin)) {
+          // Dibujamos la línea actual
+          drawTextLine(page, currentLineFragments, margin, y, fontSize, 
+                     regularFont, boldFont, italicFont, boldItalicFont);
           
+          // Nueva línea
           y -= lineHeight;
-          currentLine = word;
+          currentX = margin;
+          currentLineFragments = [fragment];
+          currentLineWidth = fragmentWidth;
           
+          // Verificamos si necesitamos nueva página
           if (y < margin) {
             page = pdfDoc.addPage([550, 750]);
             y = page.getHeight() - margin - fontSize;
           }
         } else {
-          currentLine = testLine;
+          currentLineFragments.push(fragment);
+          currentX += fragmentWidth;
+          currentLineWidth += fragmentWidth;
         }
       }
       
-      if (currentLine) {
-        page.drawText(currentLine, {
-          x: margin,
-          y,
-          size: fontSize,
-          font,
-          color: rgb(0, 0, 0),
-        });
-        y -= lineHeight * 1.5; // Espacio extra entre párrafos
+      // Dibujamos la última línea del párrafo
+      if (currentLineFragments.length > 0) {
+        drawTextLine(page, currentLineFragments, margin, y, fontSize, 
+                   regularFont, boldFont, italicFont, boldItalicFont);
+        y -= lineHeight * 1.5; // Espacio entre párrafos
       }
       
+      // Verificamos si necesitamos nueva página
       if (y < margin) {
         page = pdfDoc.addPage([550, 750]);
         y = page.getHeight() - margin - fontSize;
@@ -1279,7 +1273,7 @@ async function createPdfFromText(text) {
     }
     
     await downloadAndSavePDF(pdfDoc, fileName);
-    showToast('PDF creado exitosamente');
+    showToast('PDF formateado creado exitosamente');
     
   } catch (error) {
     console.error('Error al crear PDF:', error);
@@ -1287,13 +1281,90 @@ async function createPdfFromText(text) {
   }
 }
 
-// Event listener para el botón principal
-textToPdfBtn.addEventListener('click', async () => {
-  const text = await showTextInputDialog();
-  if (text) {
-    await createPdfFromText(text);
+// Función para analizar texto con formato
+function parseFormattedText(text) {
+  const fragments = [];
+  let currentText = '';
+  let bold = false;
+  let italic = false;
+  let underline = false;
+  let i = 0;
+  
+  while (i < text.length) {
+    // Detección de formatos
+    if (text.substr(i, 2) === '**' && !italic) {
+      if (currentText) fragments.push({ text: currentText, bold, italic, underline });
+      bold = !bold;
+      currentText = '';
+      i += 2;
+    } 
+    else if (text.substr(i, 1) === '_' && !bold) {
+      if (currentText) fragments.push({ text: currentText, bold, italic, underline });
+      italic = !italic;
+      currentText = '';
+      i += 1;
+    }
+    else if (text.substr(i, 3) === '<u>') {
+      if (currentText) fragments.push({ text: currentText, bold, italic, underline });
+      underline = true;
+      currentText = '';
+      i += 3;
+    }
+    else if (text.substr(i, 4) === '</u>') {
+      if (currentText) fragments.push({ text: currentText, bold, italic, underline });
+      underline = false;
+      currentText = '';
+      i += 4;
+    }
+    else {
+      currentText += text[i];
+      i++;
+    }
   }
-});
+  
+  if (currentText) fragments.push({ text: currentText, bold, italic, underline });
+  
+  return fragments;
+}
+
+// Función para obtener la fuente adecuada
+function getFontForFragment(fragment, regularFont, boldFont, italicFont, boldItalicFont) {
+  if (fragment.bold && fragment.italic) return boldItalicFont;
+  if (fragment.bold) return boldFont;
+  if (fragment.italic) return italicFont;
+  return regularFont;
+}
+
+// Función para dibujar una línea de texto con formatos
+function drawTextLine(page, fragments, x, y, fontSize, regularFont, boldFont, italicFont, boldItalicFont) {
+  let currentX = x;
+  
+  for (const fragment of fragments) {
+    const font = getFontForFragment(fragment, regularFont, boldFont, italicFont, boldItalicFont);
+    
+    page.drawText(fragment.text, {
+      x: currentX,
+      y,
+      size: fontSize,
+      font,
+      color: rgb(0, 0, 0),
+      underline: fragment.underline
+    });
+    
+    // Dibujar subrayado si está activo
+    if (fragment.underline) {
+      const textWidth = font.widthOfTextAtSize(fragment.text, fontSize);
+      page.drawLine({
+        start: { x: currentX, y: y - 2 },
+        end: { x: currentX + textWidth, y: y - 2 },
+        thickness: 0.5,
+        color: rgb(0, 0, 0)
+      });
+    }
+    
+    currentX += font.widthOfTextAtSize(fragment.text, fontSize);
+  }
+}
 
 </script>
 
