@@ -1531,10 +1531,9 @@ watermarkBtn.addEventListener('click', () => {
   
   modal.innerHTML = `
     <div class="text-modal-content">
-      <h3 style="margin: 0 0 15px 0; color: #1f2f40; padding: 0 10px;">Añadir marca de agua a PDF</h3>
+      <h3 style="margin: 0 0 20px 0; color: #000000; padding: 0 0;">Añadir marca de agua</h3>
       
       <div style="margin-bottom: 15px;">
-        <label for="watermarkPdfInput">Seleccionar PDF:</label>
         <input type="file" id="watermarkPdfInput" accept="application/pdf" style="width: 100%; margin: 8px 0 15px;">
       </div>
       
@@ -1613,8 +1612,7 @@ watermarkBtn.addEventListener('click', () => {
       </div>
       
       <div style="margin-bottom: 20px;">
-        <label>Capa:</label>
-        <div style="display: flex; gap: 15px; margin: 8px 0 0;">
+        <div style="display: flex; gap: 10px; margin: 8px 0 0;">
           <label style="display: flex; align-items: center;">
             <input type="radio" name="watermarkLayer" value="over" checked> Encima del contenido
           </label>
@@ -1626,10 +1624,10 @@ watermarkBtn.addEventListener('click', () => {
     
       <div class="text-modal-actions" style="padding: 0 10px;">
         <button id="cancelWatermarkBtn" class="pdf-button secondary">
-          <i class="fas fa-times"></i> Cancelar
+          <i class="fas fa-times"></i>  Cancelar
         </button>
         <button id="applyWatermarkBtn" class="pdf-button">
-          <i class="fas fa-stamp"></i> Aplicar marca
+          <i class="fas fa-stamp"></i>  Aplicar marca
         </button>
       </div>
     </div>
