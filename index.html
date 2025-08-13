@@ -576,6 +576,15 @@
   </button>
 </div>
 
+<div class="section">
+  <label for="splitPdfInput">Dividir PDF</label>
+  <input id="splitPdfInput" type="file" accept="application/pdf">
+  <div id="splitOptions" style="margin-top: 10px;">
+    <label>Especifica dónde dividir (ej: 3,5 dividirá en páginas 1-3, 4-5, 6-final)</label>
+    <input type="text" id="splitPoints" placeholder="Ej: 3,5" style="width: 100%; padding: 8px; margin: 8px 0;">
+  </div>
+  <button id="splitPdfBtn">Dividir PDF</button>
+</div>
 
   <a id="downloadLink" href="#" style="display:none;" download="output.pdf"></a>
 
@@ -1689,6 +1698,78 @@ watermarkBtn.addEventListener('click', () => {
 
   document.body.appendChild(modal);
   setupWatermarkModal(modal);
+});
+
+
+// Agrega estos elementos al inicio con las otras declaraciones DOM
+const splitPdfInput = document.getElementById('splitPdfInput');
+const splitPointsInput = document.getElementById('splitPoints');
+const splitPdfBtn = document.getElementById('splitPdfBtn');
+
+// Agrega este event listener con los otros
+splitPdfBtn.addEventListener('click', async () => {
+  if (!splitPdfInput.files[0]) {
+    showToast('Selecciona un archivo PDF primero', 'error');
+    return;
+  }
+
+  const splitPointsText = splitPointsInput.value.trim();
+  if (!splitPointsText) {
+    showToast('Especifica al menos un punto de división', 'error');
+    return;
+  }
+
+  try {
+    // Parsear los puntos de división
+    const splitPoints = splitPointsText.split(',')
+      .map(p => parseInt(p.trim()))
+      .filter(p => !isNaN(p) && p > 0)
+      .sort((a, b) => a - b);
+    
+    if (splitPoints.length === 0) {
+      showToast('Ingresa números válidos para dividir (ej: 3,5)', 'error');
+      return;
+    }
+
+    showToast('Procesando división del PDF...', 'info');
+    
+    const arrayBuffer = await splitPdfInput.files[0].arrayBuffer();
+    const originalPdf = await PDFDocument.load(arrayBuffer);
+    const pageCount = originalPdf.getPageCount();
+    
+    // Validar que los puntos de división sean válidos
+    const invalidPoints = splitPoints.filter(p => p >= pageCount);
+    if (invalidPoints.length > 0) {
+      showToast(`Advertencia: Puntos ${invalidPoints.join(',')} mayores que el total de páginas (${pageCount}) serán ignorados`, 'warning');
+    }
+
+    // Filtrar puntos válidos y añadir 0 al inicio
+    const validSplitPoints = [0, ...splitPoints.filter(p => p < pageCount), pageCount];
+    
+    // Crear los PDFs divididos
+    for (let i = 0; i < validSplitPoints.length - 1; i++) {
+      const start = validSplitPoints[i];
+      const end = validSplitPoints[i + 1];
+      
+      const newPdf = await PDFDocument.create();
+      const pageIndices = Array.from({length: end - start}, (_, idx) => start + idx);
+      const copiedPages = await newPdf.copyPages(originalPdf, pageIndices);
+      copiedPages.forEach(page => newPdf.addPage(page));
+      
+      const originalName = splitPdfInput.files[0].name.replace('.pdf', '');
+      const partNumber = i + 1;
+      const totalParts = validSplitPoints.length - 1;
+      const fileName = `${originalName}_parte${partNumber}-de-${totalParts}.pdf`;
+      
+      await downloadAndSavePDF(newPdf, fileName);
+    }
+    
+    showToast(`PDF dividido en ${validSplitPoints.length - 1} partes`, 'success');
+    
+  } catch (error) {
+    console.error('Error al dividir PDF:', error);
+    showToast(`Error al dividir PDF: ${error.message}`, 'error');
+  }
 });
 
 </script>
