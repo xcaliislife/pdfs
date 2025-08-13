@@ -1154,7 +1154,9 @@ function showTextInputDialog() {
 }
 
 // Función para crear PDF desde texto
-textToPdfBtn.addEventListener('click', () => {
+// Función para crear PDF desde texto
+textToPdfBtn.addEventListener('click', async () => {
+  // Crear el modal
   const modal = document.createElement('div');
   modal.className = 'text-modal';
   
@@ -1181,46 +1183,114 @@ textToPdfBtn.addEventListener('click', () => {
   const textarea = modal.querySelector('textarea');
   textarea.focus();
   
-  // Manejo de eventos
+  // Contador de caracteres
+  textarea.addEventListener('input', () => {
+    const counter = modal.querySelector('.char-counter');
+    counter.textContent = `${textarea.value.length}/5000`;
+  });
+
+  // Función para cerrar el modal
+  const closeModal = () => {
+    document.body.removeChild(modal);
+    document.removeEventListener('keydown', handleEscape);
+  };
+
+  // Manejar tecla Escape
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') closeModal();
+  };
+  document.addEventListener('keydown', handleEscape);
+
+  // Generar PDF
   modal.querySelector('#generatePdfBtn').addEventListener('click', async () => {
     const text = textarea.value.trim();
     if (!text) {
       showToast('Por favor ingresa algún texto', 'error');
       return;
     }
-    modal.remove();
-    await createPdfFromText(text);
+    
+    closeModal();
+    
+    try {
+      const fileName = await getCustomFileName('Documento_de_Texto.pdf');
+      const pdfDoc = await PDFDocument.create();
+      let page = pdfDoc.addPage([550, 750]);
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      
+      // Configuración de formato
+      const margin = 50;
+      const fontSize = 12;
+      const lineHeight = fontSize * 1.2;
+      let y = page.getHeight() - margin - fontSize;
+      
+      // Procesar texto
+      const paragraphs = text.split('\n');
+      for (const paragraph of paragraphs) {
+        const words = paragraph.split(/\s+/).filter(w => w.length > 0);
+        let currentLine = '';
+        
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+          
+          if (testWidth > (page.getWidth() - 2 * margin)) {
+            page.drawText(currentLine, {
+              x: margin,
+              y,
+              size: fontSize,
+              font,
+              color: rgb(0, 0, 0),
+            });
+            
+            y -= lineHeight;
+            currentLine = word;
+            
+            // Nueva página si es necesario
+            if (y < margin) {
+              page = pdfDoc.addPage([550, 750]);
+              y = page.getHeight() - margin - fontSize;
+            }
+          } else {
+            currentLine = testLine;
+          }
+        }
+        
+        // Dibujar última línea del párrafo
+        if (currentLine) {
+          page.drawText(currentLine, {
+            x: margin,
+            y,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+          });
+          y -= lineHeight * 1.5; // Espacio extra entre párrafos
+        }
+        
+        // Nueva página si es necesario
+        if (y < margin) {
+          page = pdfDoc.addPage([550, 750]);
+          y = page.getHeight() - margin - fontSize;
+        }
+      }
+      
+      await downloadAndSavePDF(pdfDoc, fileName);
+      showToast('PDF creado exitosamente');
+      
+    } catch (error) {
+      console.error('Error al crear PDF:', error);
+      showToast(`Error al crear PDF: ${error.message}`, 'error');
+    }
   });
-
-  textarea.addEventListener('input', () => {
-     const counter = modal.querySelector('.char-counter');
-     counter.textContent = `${textarea.value.length}/5000`;
-   });
   
-  modal.querySelector('#cancelTextBtn').addEventListener('click', () => {
-    modal.remove();
-  });
+  // Cancelar
+  modal.querySelector('#cancelTextBtn').addEventListener('click', closeModal);
   
   // Cerrar al hacer clic fuera del contenido
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
+    if (e.target === modal) closeModal();
   });
 });
-
-async function createPdfFromText(text) {
-  try {
-    const fileName = await getCustomFileName('Documento_de_Texto.pdf');
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([550, 750]);
-    
-    // ... (resto de la lógica para generar el PDF)
-    
-    downloadAndSavePDF(pdfDoc, fileName);
-    showToast('PDF creado exitosamente');
-  } catch (error) {
-    showToast(`Error: ${error.message}`, 'error');
-  }
-}
 
 </script>
 
