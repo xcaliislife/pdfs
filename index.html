@@ -1182,6 +1182,69 @@ toast.addEventListener('click', () => {
 }
 
 
+// 1. Selección del elemento del botón (asegúrate que existe en tu HTML)
+const textToPdfBtn = document.getElementById('textToPdfBtn');
+
+// 2. Event Listener para abrir el modal de texto
+textToPdfBtn.addEventListener('click', () => {
+  const modal = document.createElement('div');
+  modal.className = 'text-modal';
+  
+  modal.innerHTML = `
+    <div class="text-modal-content">
+      <h3 style="margin: 0 0 15px 0; color: #1f2f40;">Crear PDF desde texto</h3>
+      
+      <div class="formatting-toolbar" style="margin-bottom: 10px;">
+        <button class="format-btn" data-tag="b" title="Negritas"><i class="fas fa-bold"></i></button>
+        <button class="format-btn" data-tag="i" title="Itálicas"><i class="fas fa-italic"></i></button>
+        <select class="font-size-select" style="margin-left: 10px; padding: 3px;">
+          <option value="10">Pequeño</option>
+          <option value="12" selected>Normal</option>
+          <option value="14">Grande</option>
+        </select>
+      </div>
+      
+      <textarea class="text-modal-textarea" 
+                placeholder="Escribe tu texto aquí... Usa **negritas** y _itálicas_"></textarea>
+      
+      <div class="word-counter">0/20,000 palabras</div>
+      
+      <div class="text-modal-actions">
+        <button id="cancelPdfBtn" class="pdf-button secondary">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
+        <button id="generatePdfBtn" class="pdf-button">
+          <i class="fas fa-file-pdf"></i> Generar PDF
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  const textarea = modal.querySelector('textarea');
+  textarea.focus();
+
+  // 3. Event Listener para el botón de generación (¡ESTE ES EL QUE FALTABA!)
+  modal.querySelector('#generatePdfBtn').addEventListener('click', async () => {
+    const text = textarea.value.trim();
+    const fontSize = parseInt(modal.querySelector('.font-size-select').value);
+    
+    if (!text) {
+      showToast('Por favor ingresa algún texto', 'error');
+      return;
+    }
+    
+    await createFormattedPdf(text, fontSize);
+    document.body.removeChild(modal);
+  });
+
+  // Event listener para cancelar
+  modal.querySelector('#cancelPdfBtn').addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+});
+
+// 4. Función de generación de PDF (la que ya tenías)
 async function createFormattedPdf(text, baseFontSize = 12) {
   try {
     const pdfDoc = await PDFDocument.create();
@@ -1194,26 +1257,20 @@ async function createFormattedPdf(text, baseFontSize = 12) {
     const lineHeight = baseFontSize * 1.5;
     let y = page.getHeight() - margin;
 
-    // Procesamiento mejorado de párrafos
     const paragraphs = text.split('\n').filter(p => p.trim() !== '');
     
     for (const paragraph of paragraphs) {
-      // Resetear formato para cada párrafo
       let currentFont = helvetica;
       let currentColor = rgb(0, 0, 0);
       let currentText = '';
       let inBold = false;
       let inItalic = false;
 
-      // Procesar caracteres uno por uno para mejor control
       for (let i = 0; i < paragraph.length; i++) {
         const char = paragraph[i];
         
-        // Detección de formato markdown simple
         if (char === '*' && paragraph[i+1] === '*') {
-          // Negritas **
           if (inBold) {
-            // Dibujar texto acumulado antes del cierre de negrita
             if (currentText) {
               const width = currentFont.widthOfTextAtSize(currentText, baseFontSize);
               if (width > (page.getWidth() - 2 * margin - 5)) {
@@ -1233,7 +1290,6 @@ async function createFormattedPdf(text, baseFontSize = 12) {
             currentFont = inItalic ? helveticaOblique : helvetica;
             inBold = false;
           } else {
-            // Dibujar texto acumulado antes de abrir negrita
             if (currentText) {
               const width = currentFont.widthOfTextAtSize(currentText, baseFontSize);
               if (width > (page.getWidth() - 2 * margin - 5)) {
@@ -1253,10 +1309,9 @@ async function createFormattedPdf(text, baseFontSize = 12) {
             currentFont = helveticaBold;
             inBold = true;
           }
-          i++; // Saltar el siguiente *
+          i++;
           continue;
         } else if (char === '_') {
-          // Itálicas _
           if (inItalic) {
             if (currentText) {
               const width = currentFont.widthOfTextAtSize(currentText, baseFontSize);
@@ -1302,7 +1357,6 @@ async function createFormattedPdf(text, baseFontSize = 12) {
         currentText += char;
       }
 
-      // Dibujar el texto restante del párrafo
       if (currentText) {
         y = await handleTextOverflow(pdfDoc, page, currentText, {
           x: margin, y, font: currentFont, 
@@ -1311,10 +1365,8 @@ async function createFormattedPdf(text, baseFontSize = 12) {
         });
       }
 
-      // Espacio entre párrafos
       y -= lineHeight * 0.8;
       
-      // Nueva página si es necesario
       if (y < margin) {
         page = pdfDoc.addPage([595, 842]);
         y = page.getHeight() - margin;
@@ -1331,7 +1383,6 @@ async function createFormattedPdf(text, baseFontSize = 12) {
   }
 }
 
-// Función auxiliar para manejar desbordamiento de texto
 async function handleTextOverflow(pdfDoc, page, text, options) {
   const words = text.split(' ');
   let currentLine = '';
