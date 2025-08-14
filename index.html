@@ -154,31 +154,74 @@
 }
 
 /* Estilos para el historial de archivos - Actualizados */
+/* === Estilos para el historial - Botones horizontales a la derecha === */
 .files-history li {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between; /* Separa nombre y botones */
+  align-items: center; /* Centra verticalmente */
   padding: 10px 15px;
   border-bottom: 2px solid #e0e0e0;
   background: white;
+  gap: 15px; /* Espacio entre nombre y botones */
 }
 
 .file-info {
-  margin-bottom: 8px;
+  flex-grow: 1; /* Ocupa todo el espacio disponible */
+  white-space: nowrap; /* Evita saltos de línea */
+  overflow: hidden;
+  text-overflow: ellipsis; /* (...) si el nombre es muy largo */
 }
 
 .file-actions {
   display: flex;
-  gap: 8px;
-  justify-content: flex-start;
+  gap: 8px; /* Espacio entre botones */
+  flex-shrink: 0; /* Evita que se compriman */
 }
 
 .file-date {
   font-size: 11px;
   color: #666;
+  margin-left: 8px;
+}
+
+/* Estilos para botones compactos */
+.file-actions button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  font-size: 14px;
+  background: #f5f5f5;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.file-actions button:hover {
+  background: #e0e0e0;
+}
+
+/* Color para botón borrar */
+.file-actions .delete-btn {
+  background: #ffebee;
+  color: #d32f2f;
 }
 
 .files-history li:hover {
   background-color: #dedede;
+}
+@media (max-width: 600px) {
+  .files-history li {
+    flex-wrap: wrap; /* Permite saltos de línea */
+  }
+  .file-actions {
+    width: 100%;
+    justify-content: flex-end; /* Alinea botones a la derecha */
+    margin-top: 8px;
+  }
 }
 
 #noFilesMessage {
