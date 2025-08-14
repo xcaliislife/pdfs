@@ -153,29 +153,28 @@
   margin: 0;
 }
 
-/* Estilos para el historial de archivos - Actualizados */
-/* === Estilos para el historial - Botones horizontales a la derecha === */
+/* === Estilos del Historial (Botones horizontales a la derecha) === */
 .files-history li {
   display: flex;
-  justify-content: space-between; /* Separa nombre y botones */
-  align-items: center; /* Centra verticalmente */
+  justify-content: space-between;
+  align-items: center;
   padding: 10px 15px;
   border-bottom: 2px solid #e0e0e0;
   background: white;
-  gap: 15px; /* Espacio entre nombre y botones */
+  gap: 15px;
 }
 
 .file-info {
-  flex-grow: 1; /* Ocupa todo el espacio disponible */
-  white-space: nowrap; /* Evita saltos de línea */
+  flex-grow: 1;
+  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis; /* (...) si el nombre es muy largo */
+  text-overflow: ellipsis;
 }
 
 .file-actions {
   display: flex;
-  gap: 8px; /* Espacio entre botones */
-  flex-shrink: 0; /* Evita que se compriman */
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .file-date {
@@ -184,34 +183,63 @@
   margin-left: 8px;
 }
 
-/* Estilos para botones compactos */
+/* === Botones con colores originales y efectos === */
 .file-actions button {
   width: 32px;
   height: 32px;
   padding: 0;
-  display: flex;
+  display: inline-flex;
   justify-content: center;
   align-items: center;
   border-radius: 50%;
-  font-size: 14px;
-  background: #f5f5f5;
   border: none;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.3s ease;
+  font-size: 14px;
 }
 
-.file-actions button:hover {
-  background: #e0e0e0;
+/* Botón "Abrir" (Azul claro) */
+.file-actions button:first-child {
+  background: #e3f2fd;
+  color: #1976d2;
 }
 
-/* Color para botón borrar */
-.file-actions .delete-btn {
+/* Botón "Descargar" (Verde claro) */
+.file-actions button:nth-child(2) {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+/* Botón "Borrar" (Rojo claro) */
+.file-actions button:last-child {
   background: #ffebee;
   color: #d32f2f;
 }
 
+/* Efectos hover */
+.file-actions button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Tooltips (texto al pasar el mouse) */
+.file-actions button[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .files-history li:hover {
   background-color: #dedede;
+
 }
 @media (max-width: 600px) {
   .files-history li {
