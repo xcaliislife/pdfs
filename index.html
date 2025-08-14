@@ -147,7 +147,7 @@
   width: 100%;
   box-sizing: border-box;
 }
-/* ===== ESTILOS DEL HISTORIAL - VERSIÓN CORREGIDA ===== */
+/* ===== HISTORIAL CON DISPOSICIÓN HORIZONTAL NATURAL ===== */
 .files-history {
   list-style-type: none;
   padding: 0;
@@ -158,103 +158,67 @@
 
 .files-history li {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap; /* Permite saltos de línea */
   align-items: center;
+  gap: 10px 15px; /* Espacio entre elementos */
   padding: 10px 15px;
   border-bottom: 2px solid #e0e0e0;
   background: white;
-  gap: 15px;
 }
 
-.files-history li:hover {
-  background-color: #f5f5f5;
+/* Información del archivo - fluye horizontalmente */
+.file-info-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  flex-grow: 1;
 }
 
-.file-info {
-  flex: 1;
-  min-width: 0; /* Permite que el texto se trunque */
+.file-name {
+  font-weight: bold;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.file-size {
+  color: #666;
+  font-size: 0.9em;
 }
 
 .file-date {
-  font-size: 11px;
   color: #666;
-  margin-left: 8px;
-  display: inline-block; /* Para que aparezca junto al nombre */
+  font-size: 0.9em;
 }
 
+/* Contenedor de botones - se mantiene agrupado */
 .file-actions {
   display: flex;
   gap: 8px;
-  flex-shrink: 0; /* Evita que se encojan los botones */
+  flex-shrink: 0;
 }
 
-/* Botones de acciones */
+/* Botones (estilos originales mejorados) */
 .file-actions button {
   width: 32px;
   height: 32px;
   padding: 0;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 14px;
 }
 
-/* Botón Abrir */
-.file-actions button:first-child {
-  background: #e3f2fd;
-  color: #1976d2;
-}
+/* Colores originales */
+.file-actions button:first-child { background: #e3f2fd; color: #1976d2; }
+.file-actions button:nth-child(2) { background: #e8f5e9; color: #388e3c; }
+.file-actions button:last-child { background: #ffebee; color: #d32f2f; }
 
-/* Botón Descargar */
-.file-actions button:nth-child(2) {
-  background: #e8f5e9;
-  color: #388e3c;
-}
-
-/* Botón Borrar */
-.file-actions button:last-child {
-  background: #ffebee;
-  color: #d32f2f;
-}
-
-/* Efectos hover */
 .file-actions button:hover {
   transform: scale(1.1);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* Tooltips */
-.file-actions button[title]:hover::after {
-  content: attr(title);
-  position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #333;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-/* Responsive para móviles */
-@media (max-width: 600px) {
-  .files-history li {
-    flex-wrap: wrap;
-  }
-  
-  .file-actions {
-    margin-left: auto; /* Empuja los botones a la derecha */
-    padding-top: 8px;
-  }
+  opacity: 0.9;
 }
 
 #noFilesMessage {
@@ -1166,62 +1130,43 @@ function displayFiles() {
     noFilesMsg.style.display = "none";
     files.sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    files.forEach(file => {
-      const li = document.createElement("li");
-      
-      const fileInfo = document.createElement("div");
-      fileInfo.className = "file-info";
-      fileInfo.innerHTML = `
-        <strong>${file.name}</strong>
-        <span class="file-date">${new Date(file.date).toLocaleString()} · ${Math.round(file.blob.size/1024)} KB</span>
-      `;
-      
-      const actions = document.createElement("div");
-      actions.className = "file-actions";
-      
-      const openBtn = document.createElement("button");
-      openBtn.innerHTML = '<i class="fas fa-eye"></i>';
-      openBtn.title = "Abrir";
-      openBtn.className = "icon-btn";
-      openBtn.onclick = () => {
-        const url = URL.createObjectURL(file.blob);
-        window.open(url, '_blank');
-        URL.revokeObjectURL(url);
-      };
-      
-      const downloadBtn = document.createElement("button");
-      downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
-      downloadBtn.title = "Descargar";
-      downloadBtn.className = "icon-btn";
-      downloadBtn.onclick = () => {
-        const url = URL.createObjectURL(file.blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(url);
-      };
-      
-      const deleteBtn = document.createElement("button");
-      deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-      deleteBtn.title = "Borrar";
-      deleteBtn.className = "icon-btn delete-btn";
-      deleteBtn.onclick = () => {
-        if (confirm(`¿Seguro que quieres borrar "${file.name}"?`)) {
-          const delTx = db.transaction("pdfs", "readwrite");
-          delTx.objectStore("pdfs").delete(file.id);
-          delTx.oncomplete = () => displayFiles();
-        }
-      };
-      
-      actions.appendChild(openBtn);
-      actions.appendChild(downloadBtn);
-      actions.appendChild(deleteBtn);
-      li.appendChild(fileInfo);
-      li.appendChild(actions);
-      list.appendChild(li);
-    });
-  };
+
+  files.forEach(file => {
+    const li = document.createElement("li");
+    
+    // Contenedor principal flexible
+    const infoContainer = document.createElement("div");
+    infoContainer.className = "file-info-container";
+    
+    // Nombre
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "file-name";
+    nameSpan.textContent = file.name;
+    
+    // Tamaño
+    const sizeSpan = document.createElement("span");
+    sizeSpan.className = "file-size";
+    sizeSpan.textContent = `${Math.round(file.blob.size/1024)} KB`;
+    
+    // Fecha
+    const dateSpan = document.createElement("span");
+    dateSpan.className = "file-date";
+    dateSpan.textContent = new Date(file.date).toLocaleString();
+    
+    // Agregar elementos al contenedor
+    infoContainer.appendChild(nameSpan);
+    infoContainer.appendChild(sizeSpan);
+    infoContainer.appendChild(dateSpan);
+    
+    // Botones (mantén tu código actual)
+    const actions = document.createElement("div");
+    actions.className = "file-actions";
+    // ... (código de botones existente)
+    
+    li.appendChild(infoContainer);
+    li.appendChild(actions);
+    list.appendChild(li);
+  });
 }
 
 function showToast(message, type = 'success') {
