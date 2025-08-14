@@ -1182,231 +1182,193 @@ toast.addEventListener('click', () => {
 }
 
 
-// Texto a PDF con formato mejorado
-const textToPdfBtn = document.getElementById('textToPdfBtn');
-
-textToPdfBtn.addEventListener('click', () => {
-  const modal = document.createElement('div');
-  modal.className = 'text-modal';
-  
-  modal.innerHTML = `
-    <div class="text-modal-content">
-      <h3 style="margin: 0 0 15px 0; color: #1f2f40;">Crear PDF desde texto</h3>
-      
-      <div class="formatting-toolbar" style="margin-bottom: 10px;">
-        <button class="format-btn" data-tag="b" title="Negritas"><i class="fas fa-bold"></i></button>
-        <button class="format-btn" data-tag="i" title="Itálicas"><i class="fas fa-italic"></i></button>
-        <button class="format-btn" data-tag="u" title="Subrayado"><i class="fas fa-underline"></i></button>
-        <select class="font-size-select" style="margin-left: 10px; padding: 3px;">
-          <option value="10">Pequeño</option>
-          <option value="12" selected>Normal</option>
-          <option value="14">Grande</option>
-          <option value="16">Extra Grande</option>
-        </select>
-      </div>
-      
-      <textarea class="text-modal-textarea" 
-                placeholder="Escribe tu texto aquí (máximo 20,000 palabras)...\n\nPuedes usar:\n**negritas** \n_itálicas_ \n--tachado--"></textarea>
-      
-      <div class="word-counter" style="padding: 5px 0; color: #666; font-size: 13px;">0/20,000 palabras</div>
-      
-      <div class="text-modal-actions">
-        <button id="cancelPdfBtn" class="pdf-button secondary">
-          <i class="fas fa-times"></i> Cancelar
-        </button>
-        <button id="generatePdfBtn" class="pdf-button">
-          <i class="fas fa-file-pdf"></i> Generar PDF
-        </button>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  const textarea = modal.querySelector('textarea');
-  textarea.focus();
-  
-  // Contador de palabras
-  const wordCounter = modal.querySelector('.word-counter');
-  
-  // Formateo de texto con botones
-  modal.querySelectorAll('.format-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tag = btn.dataset.tag;
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const selectedText = textarea.value.substring(start, end);
-      
-      let wrapWith;
-      switch(tag) {
-        case 'b': wrapWith = '**'; break;
-        case 'i': wrapWith = '_'; break;
-        case 'u': wrapWith = '__'; break;
-      }
-      
-      textarea.value = textarea.value.substring(0, start) + 
-                       wrapWith + selectedText + wrapWith + 
-                       textarea.value.substring(end);
-      
-      textarea.focus();
-      textarea.setSelectionRange(start + wrapWith.length, end + wrapWith.length);
-    });
-  });
-
-  textarea.addEventListener('input', () => {
-    const text = textarea.value.trim();
-    const wordCount = text ? text.split(/\s+/).length : 0;
-    wordCounter.textContent = `${wordCount.toLocaleString()}/20,000 palabras`;
-    modal.querySelector('#generatePdfBtn').disabled = wordCount > 20000;
-  });
-
-  const closeModal = () => document.body.removeChild(modal);
-
-  modal.querySelector('#generatePdfBtn').addEventListener('click', async () => {
-    const text = textarea.value.trim();
-    
-    if (!text) {
-      showToast('Por favor ingresa algún texto', 'error');
-      return;
-    }
-    
-    const wordCount = text.split(/\s+/).length;
-    if (wordCount > 20000) {
-      showToast('El texto excede el límite de 20,000 palabras', 'error');
-      return;
-    }
-    
-    const fontSize = parseInt(modal.querySelector('.font-size-select').value);
-    closeModal();
-    await createFormattedPdf(text, fontSize);
-  });
-  
-  modal.querySelector('#cancelPdfBtn').addEventListener('click', closeModal);
-  modal.addEventListener('click', (e) => e.target === modal && closeModal());
-});
-
 async function createFormattedPdf(text, baseFontSize = 12) {
   try {
-    const wordCount = text.split(/\s+/).length;
-    const charCount = text.length;
-    
-    if (wordCount > 20000) {
-      showToast('El texto excede el límite de 20,000 palabras', 'error');
-      return;
-    }
-    
-    if (charCount > 150000) {
-      showToast('El texto excede el límite de 150,000 caracteres', 'error');
-      return;
-    }
-
-    const fileName = await getCustomFileName('Documento.pdf');
-    showToast(`Procesando documento (${wordCount} palabras)...`, 'info');
-    
     const pdfDoc = await PDFDocument.create();
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const helveticaOblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
-    
+
     let page = pdfDoc.addPage([595, 842]);
     const margin = 50;
     const lineHeight = baseFontSize * 1.5;
     let y = page.getHeight() - margin;
-    
-    // Procesar texto con formato
-    const paragraphs = text.split('\n');
+
+    // Procesamiento mejorado de párrafos
+    const paragraphs = text.split('\n').filter(p => p.trim() !== '');
     
     for (const paragraph of paragraphs) {
-      if (paragraph.trim() === '') {
-        y -= lineHeight * 0.5; // Espacio entre párrafos
-        continue;
-      }
-      
-      let currentLine = '';
+      // Resetear formato para cada párrafo
       let currentFont = helvetica;
-      let currentFontSize = baseFontSize;
       let currentColor = rgb(0, 0, 0);
-      
-      // Procesar formato simple (markdown básico)
-      const tokens = paragraph.split(/(\*\*.*?\*\*|_.*?_|__.*?__|--.*?--)/g);
-      
-      for (const token of tokens) {
-        if (token.startsWith('**') && token.endsWith('**')) {
-          // Texto en negritas
-          const content = token.slice(2, -2);
-          currentFont = helveticaBold;
-          currentLine += content;
-        } else if (token.startsWith('_') && token.endsWith('_')) {
-          // Texto en itálicas
-          const content = token.slice(1, -1);
-          currentFont = helveticaOblique;
-          currentLine += content;
-        } else if (token.startsWith('__') && token.endsWith('__')) {
-          // Subrayado (simulado)
-          const content = token.slice(2, -2);
-          currentLine += content;
-        } else if (token.startsWith('--') && token.endsWith('--')) {
-          // Tachado (simulado)
-          const content = token.slice(2, -2);
-          currentLine += content;
-        } else {
-          // Texto normal
-          currentFont = helvetica;
-          currentLine += token;
-        }
+      let currentText = '';
+      let inBold = false;
+      let inItalic = false;
+
+      // Procesar caracteres uno por uno para mejor control
+      for (let i = 0; i < paragraph.length; i++) {
+        const char = paragraph[i];
         
-        // Verificar si necesitamos un salto de línea
-        const testWidth = currentFont.widthOfTextAtSize(currentLine, currentFontSize);
-        const safeWidth = page.getWidth() - (2 * margin) - 5;
-        
-        if (testWidth > safeWidth) {
-          // Encontrar el último espacio para hacer el salto
-          const lastSpace = currentLine.lastIndexOf(' ');
-          if (lastSpace > 0) {
-            const toDraw = currentLine.substring(0, lastSpace);
-            const remaining = currentLine.substring(lastSpace + 1);
-            
-            page.drawText(toDraw, {
-              x: margin,
-              y,
-              size: currentFontSize,
-              font: currentFont,
-              color: currentColor,
-              maxWidth: safeWidth
-            });
-            
-            y -= lineHeight;
-            currentLine = remaining;
+        // Detección de formato markdown simple
+        if (char === '*' && paragraph[i+1] === '*') {
+          // Negritas **
+          if (inBold) {
+            // Dibujar texto acumulado antes del cierre de negrita
+            if (currentText) {
+              const width = currentFont.widthOfTextAtSize(currentText, baseFontSize);
+              if (width > (page.getWidth() - 2 * margin - 5)) {
+                y = await handleTextOverflow(pdfDoc, page, currentText, {
+                  x: margin, y, font: currentFont, 
+                  size: baseFontSize, color: currentColor,
+                  maxWidth: page.getWidth() - 2 * margin - 5
+                });
+              } else {
+                page.drawText(currentText, {
+                  x: margin, y, size: baseFontSize,
+                  font: currentFont, color: currentColor
+                });
+              }
+              currentText = '';
+            }
+            currentFont = inItalic ? helveticaOblique : helvetica;
+            inBold = false;
+          } else {
+            // Dibujar texto acumulado antes de abrir negrita
+            if (currentText) {
+              const width = currentFont.widthOfTextAtSize(currentText, baseFontSize);
+              if (width > (page.getWidth() - 2 * margin - 5)) {
+                y = await handleTextOverflow(pdfDoc, page, currentText, {
+                  x: margin, y, font: currentFont, 
+                  size: baseFontSize, color: currentColor,
+                  maxWidth: page.getWidth() - 2 * margin - 5
+                });
+              } else {
+                page.drawText(currentText, {
+                  x: margin, y, size: baseFontSize,
+                  font: currentFont, color: currentColor
+                });
+              }
+              currentText = '';
+            }
+            currentFont = helveticaBold;
+            inBold = true;
           }
+          i++; // Saltar el siguiente *
+          continue;
+        } else if (char === '_') {
+          // Itálicas _
+          if (inItalic) {
+            if (currentText) {
+              const width = currentFont.widthOfTextAtSize(currentText, baseFontSize);
+              if (width > (page.getWidth() - 2 * margin - 5)) {
+                y = await handleTextOverflow(pdfDoc, page, currentText, {
+                  x: margin, y, font: currentFont, 
+                  size: baseFontSize, color: currentColor,
+                  maxWidth: page.getWidth() - 2 * margin - 5
+                });
+              } else {
+                page.drawText(currentText, {
+                  x: margin, y, size: baseFontSize,
+                  font: currentFont, color: currentColor
+                });
+              }
+              currentText = '';
+            }
+            currentFont = inBold ? helveticaBold : helvetica;
+            inItalic = false;
+          } else {
+            if (currentText) {
+              const width = currentFont.widthOfTextAtSize(currentText, baseFontSize);
+              if (width > (page.getWidth() - 2 * margin - 5)) {
+                y = await handleTextOverflow(pdfDoc, page, currentText, {
+                  x: margin, y, font: currentFont, 
+                  size: baseFontSize, color: currentColor,
+                  maxWidth: page.getWidth() - 2 * margin - 5
+                });
+              } else {
+                page.drawText(currentText, {
+                  x: margin, y, size: baseFontSize,
+                  font: currentFont, color: currentColor
+                });
+              }
+              currentText = '';
+            }
+            currentFont = helveticaOblique;
+            inItalic = true;
+          }
+          continue;
         }
+
+        currentText += char;
       }
-      
-      // Dibujar lo que quede en la línea actual
-      if (currentLine) {
-        page.drawText(currentLine, {
-          x: margin,
-          y,
-          size: currentFontSize,
-          font: currentFont,
-          color: currentColor,
-          maxWidth: page.getWidth() - (2 * margin) - 5
+
+      // Dibujar el texto restante del párrafo
+      if (currentText) {
+        y = await handleTextOverflow(pdfDoc, page, currentText, {
+          x: margin, y, font: currentFont, 
+          size: baseFontSize, color: currentColor,
+          maxWidth: page.getWidth() - 2 * margin - 5
         });
-        y -= lineHeight;
       }
+
+      // Espacio entre párrafos
+      y -= lineHeight * 0.8;
       
-      // Verificar si necesitamos nueva página
+      // Nueva página si es necesario
       if (y < margin) {
         page = pdfDoc.addPage([595, 842]);
         y = page.getHeight() - margin;
       }
     }
-    
+
+    const fileName = await getCustomFileName('DocumentoFormateado.pdf');
     await downloadAndSavePDF(pdfDoc, fileName);
-    showToast(`PDF creado exitosamente (${wordCount} palabras)`);
+    showToast('PDF generado correctamente con formato');
     
   } catch (error) {
-    console.error('Error al crear PDF:', error);
-    showToast(`Error al crear el PDF: ${error.message}`, 'error');
+    console.error('Error al generar PDF:', error);
+    showToast('Error al generar el PDF: ' + error.message, 'error');
   }
+}
+
+// Función auxiliar para manejar desbordamiento de texto
+async function handleTextOverflow(pdfDoc, page, text, options) {
+  const words = text.split(' ');
+  let currentLine = '';
+  let y = options.y;
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = options.font.widthOfTextAtSize(testLine, options.size);
+
+    if (testWidth > options.maxWidth) {
+      if (currentLine) {
+        page.drawText(currentLine, {
+          x: options.x,
+          y,
+          size: options.size,
+          font: options.font,
+          color: options.color
+        });
+        y -= options.size * 1.5;
+        currentLine = word;
+      }
+    } else {
+      currentLine = testLine;
+    }
+  }
+
+  if (currentLine) {
+    page.drawText(currentLine, {
+      x: options.x,
+      y,
+      size: options.size,
+      font: options.font,
+      color: options.color
+    });
+  }
+
+  return y - options.size * 0.5;
 }
 
 
