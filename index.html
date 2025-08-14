@@ -1182,8 +1182,7 @@ toast.addEventListener('click', () => {
 }
 
 
-
-// Texto a PDF - Versión corregida
+// Texto a PDF - Versión corregida sin desbordamiento
 const textToPdfBtn = document.getElementById('textToPdfBtn');
 
 textToPdfBtn.addEventListener('click', () => {
@@ -1269,9 +1268,7 @@ async function createSimplePdf(text) {
     showToast(`Procesando documento (${wordCount} palabras)...`, 'info');
     
     const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica, {
-      customName: "Helvetica-Unicode"
-    });
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     
     let page = pdfDoc.addPage([595, 842]);
     const margin = 50;
@@ -1333,31 +1330,40 @@ async function processTextBatch(text, { pdfDoc, page, font, margin, fontSize, li
   const words = text.split(/\s+/);
   let currentLine = '';
   
+  // Margen de seguridad adicional (5px) para evitar desbordamiento
+  const safeWidth = page.getWidth() - (2 * margin) - 5;
+  
   for (const word of words) {
     const testLine = currentLine ? `${currentLine} ${word}` : word;
     const testWidth = font.widthOfTextAtSize(testLine, fontSize);
     
-    if (testWidth > (page.getWidth() - 2 * margin)) {
-      page.drawText(currentLine, {
-        x: margin,
-        y,
-        size: fontSize,
-        font,
-        color: rgb(0, 0, 0),
-      });
-      
-      y -= lineHeight;
-      currentLine = word;
-      
-      if (y < margin) {
-        page = pdfDoc.addPage([595, 842]);
-        y = page.getHeight() - margin;
+    // Verificación con margen de seguridad
+    if (testWidth > safeWidth) {
+      // Dibujar línea actual si tiene contenido
+      if (currentLine) {
+        page.drawText(currentLine, {
+          x: margin,
+          y,
+          size: fontSize,
+          font,
+          color: rgb(0, 0, 0),
+          maxWidth: safeWidth // Asegura que no se desborde
+        });
+        
+        y -= lineHeight;
+        currentLine = word;
+        
+        if (y < margin) {
+          page = pdfDoc.addPage([595, 842]);
+          y = page.getHeight() - margin;
+        }
       }
     } else {
       currentLine = testLine;
     }
   }
   
+  // Dibujar última línea si queda contenido
   if (currentLine) {
     page.drawText(currentLine, {
       x: margin,
@@ -1365,14 +1371,13 @@ async function processTextBatch(text, { pdfDoc, page, font, margin, fontSize, li
       size: fontSize,
       font,
       color: rgb(0, 0, 0),
+      maxWidth: safeWidth // Asegura que no se desborde
     });
     y -= lineHeight;
   }
   
   return { page, y };
 }
-
-
 
 
 // Elementos para marca de agua
