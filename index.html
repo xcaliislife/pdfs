@@ -1182,7 +1182,7 @@ toast.addEventListener('click', () => {
 }
 
 
-// Texto a PDF - Versión corregida sin desbordamiento
+// Texto a PDF con formato mejorado
 const textToPdfBtn = document.getElementById('textToPdfBtn');
 
 textToPdfBtn.addEventListener('click', () => {
@@ -1191,19 +1191,31 @@ textToPdfBtn.addEventListener('click', () => {
   
   modal.innerHTML = `
     <div class="text-modal-content">
-      <h3 style="margin: 0 0 15px 0; color: #1f2f40; padding: 0 10px;">Crear PDF desde texto</h3>
+      <h3 style="margin: 0 0 15px 0; color: #1f2f40;">Crear PDF desde texto</h3>
+      
+      <div class="formatting-toolbar" style="margin-bottom: 10px;">
+        <button class="format-btn" data-tag="b" title="Negritas"><i class="fas fa-bold"></i></button>
+        <button class="format-btn" data-tag="i" title="Itálicas"><i class="fas fa-italic"></i></button>
+        <button class="format-btn" data-tag="u" title="Subrayado"><i class="fas fa-underline"></i></button>
+        <select class="font-size-select" style="margin-left: 10px; padding: 3px;">
+          <option value="10">Pequeño</option>
+          <option value="12" selected>Normal</option>
+          <option value="14">Grande</option>
+          <option value="16">Extra Grande</option>
+        </select>
+      </div>
       
       <textarea class="text-modal-textarea" 
-                placeholder="Escribe tu texto aquí (máximo 20,000 palabras)..."></textarea>
+                placeholder="Escribe tu texto aquí (máximo 20,000 palabras)...\n\nPuedes usar:\n**negritas** \n_itálicas_ \n--tachado--"></textarea>
       
-      <div class="word-counter" style="padding: 0 10px;">0/20,000 palabras</div>
+      <div class="word-counter" style="padding: 5px 0; color: #666; font-size: 13px;">0/20,000 palabras</div>
       
-      <div class="text-modal-actions" style="padding: 0 10px;">
+      <div class="text-modal-actions">
         <button id="cancelPdfBtn" class="pdf-button secondary">
           <i class="fas fa-times"></i> Cancelar
         </button>
         <button id="generatePdfBtn" class="pdf-button">
-          <i class="fas fa-file-pdf"></i> Crear PDF
+          <i class="fas fa-file-pdf"></i> Generar PDF
         </button>
       </div>
     </div>
@@ -1216,11 +1228,34 @@ textToPdfBtn.addEventListener('click', () => {
   // Contador de palabras
   const wordCounter = modal.querySelector('.word-counter');
   
+  // Formateo de texto con botones
+  modal.querySelectorAll('.format-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tag = btn.dataset.tag;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = textarea.value.substring(start, end);
+      
+      let wrapWith;
+      switch(tag) {
+        case 'b': wrapWith = '**'; break;
+        case 'i': wrapWith = '_'; break;
+        case 'u': wrapWith = '__'; break;
+      }
+      
+      textarea.value = textarea.value.substring(0, start) + 
+                       wrapWith + selectedText + wrapWith + 
+                       textarea.value.substring(end);
+      
+      textarea.focus();
+      textarea.setSelectionRange(start + wrapWith.length, end + wrapWith.length);
+    });
+  });
+
   textarea.addEventListener('input', () => {
     const text = textarea.value.trim();
     const wordCount = text ? text.split(/\s+/).length : 0;
     wordCounter.textContent = `${wordCount.toLocaleString()}/20,000 palabras`;
-    
     modal.querySelector('#generatePdfBtn').disabled = wordCount > 20000;
   });
 
@@ -1240,17 +1275,17 @@ textToPdfBtn.addEventListener('click', () => {
       return;
     }
     
+    const fontSize = parseInt(modal.querySelector('.font-size-select').value);
     closeModal();
-    await createSimplePdf(text);
+    await createFormattedPdf(text, fontSize);
   });
   
   modal.querySelector('#cancelPdfBtn').addEventListener('click', closeModal);
   modal.addEventListener('click', (e) => e.target === modal && closeModal());
 });
 
-async function createSimplePdf(text) {
+async function createFormattedPdf(text, baseFontSize = 12) {
   try {
-    // Verificación de límites
     const wordCount = text.split(/\s+/).length;
     const charCount = text.length;
     
@@ -1268,49 +1303,97 @@ async function createSimplePdf(text) {
     showToast(`Procesando documento (${wordCount} palabras)...`, 'info');
     
     const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const helveticaOblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
     
     let page = pdfDoc.addPage([595, 842]);
     const margin = 50;
-    const fontSize = 12;
-    const lineHeight = fontSize * 1.5;
+    const lineHeight = baseFontSize * 1.5;
     let y = page.getHeight() - margin;
     
-    // Procesamiento por lotes
+    // Procesar texto con formato
     const paragraphs = text.split('\n');
-    let currentBatch = [];
-    let batchSize = 0;
     
     for (const paragraph of paragraphs) {
-      const words = paragraph.split(/\s+/).filter(w => w.length > 0);
+      if (paragraph.trim() === '') {
+        y -= lineHeight * 0.5; // Espacio entre párrafos
+        continue;
+      }
       
-      for (const word of words) {
-        currentBatch.push(word);
-        batchSize += word.length;
+      let currentLine = '';
+      let currentFont = helvetica;
+      let currentFontSize = baseFontSize;
+      let currentColor = rgb(0, 0, 0);
+      
+      // Procesar formato simple (markdown básico)
+      const tokens = paragraph.split(/(\*\*.*?\*\*|_.*?_|__.*?__|--.*?--)/g);
+      
+      for (const token of tokens) {
+        if (token.startsWith('**') && token.endsWith('**')) {
+          // Texto en negritas
+          const content = token.slice(2, -2);
+          currentFont = helveticaBold;
+          currentLine += content;
+        } else if (token.startsWith('_') && token.endsWith('_')) {
+          // Texto en itálicas
+          const content = token.slice(1, -1);
+          currentFont = helveticaOblique;
+          currentLine += content;
+        } else if (token.startsWith('__') && token.endsWith('__')) {
+          // Subrayado (simulado)
+          const content = token.slice(2, -2);
+          currentLine += content;
+        } else if (token.startsWith('--') && token.endsWith('--')) {
+          // Tachado (simulado)
+          const content = token.slice(2, -2);
+          currentLine += content;
+        } else {
+          // Texto normal
+          currentFont = helvetica;
+          currentLine += token;
+        }
         
-        if (currentBatch.length >= 100 || batchSize >= 5000) {
-          const result = await processTextBatch(currentBatch.join(' '), {
-            pdfDoc, page, font, margin, fontSize, lineHeight, y
-          });
-          page = result.page;
-          y = result.y;
-          currentBatch = [];
-          batchSize = 0;
-          await new Promise(resolve => setTimeout(resolve, 10));
+        // Verificar si necesitamos un salto de línea
+        const testWidth = currentFont.widthOfTextAtSize(currentLine, currentFontSize);
+        const safeWidth = page.getWidth() - (2 * margin) - 5;
+        
+        if (testWidth > safeWidth) {
+          // Encontrar el último espacio para hacer el salto
+          const lastSpace = currentLine.lastIndexOf(' ');
+          if (lastSpace > 0) {
+            const toDraw = currentLine.substring(0, lastSpace);
+            const remaining = currentLine.substring(lastSpace + 1);
+            
+            page.drawText(toDraw, {
+              x: margin,
+              y,
+              size: currentFontSize,
+              font: currentFont,
+              color: currentColor,
+              maxWidth: safeWidth
+            });
+            
+            y -= lineHeight;
+            currentLine = remaining;
+          }
         }
       }
       
-      if (currentBatch.length > 0) {
-        const result = await processTextBatch(currentBatch.join(' '), {
-          pdfDoc, page, font, margin, fontSize, lineHeight, y
+      // Dibujar lo que quede en la línea actual
+      if (currentLine) {
+        page.drawText(currentLine, {
+          x: margin,
+          y,
+          size: currentFontSize,
+          font: currentFont,
+          color: currentColor,
+          maxWidth: page.getWidth() - (2 * margin) - 5
         });
-        page = result.page;
-        y = result.y;
-        currentBatch = [];
-        batchSize = 0;
+        y -= lineHeight;
       }
       
-      y -= lineHeight * 0.5;
+      // Verificar si necesitamos nueva página
       if (y < margin) {
         page = pdfDoc.addPage([595, 842]);
         y = page.getHeight() - margin;
@@ -1324,59 +1407,6 @@ async function createSimplePdf(text) {
     console.error('Error al crear PDF:', error);
     showToast(`Error al crear el PDF: ${error.message}`, 'error');
   }
-}
-
-async function processTextBatch(text, { pdfDoc, page, font, margin, fontSize, lineHeight, y }) {
-  const words = text.split(/\s+/);
-  let currentLine = '';
-  
-  // Margen de seguridad adicional (5px) para evitar desbordamiento
-  const safeWidth = page.getWidth() - (2 * margin) - 5;
-  
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
-    
-    // Verificación con margen de seguridad
-    if (testWidth > safeWidth) {
-      // Dibujar línea actual si tiene contenido
-      if (currentLine) {
-        page.drawText(currentLine, {
-          x: margin,
-          y,
-          size: fontSize,
-          font,
-          color: rgb(0, 0, 0),
-          maxWidth: safeWidth // Asegura que no se desborde
-        });
-        
-        y -= lineHeight;
-        currentLine = word;
-        
-        if (y < margin) {
-          page = pdfDoc.addPage([595, 842]);
-          y = page.getHeight() - margin;
-        }
-      }
-    } else {
-      currentLine = testLine;
-    }
-  }
-  
-  // Dibujar última línea si queda contenido
-  if (currentLine) {
-    page.drawText(currentLine, {
-      x: margin,
-      y,
-      size: fontSize,
-      font,
-      color: rgb(0, 0, 0),
-      maxWidth: safeWidth // Asegura que no se desborde
-    });
-    y -= lineHeight;
-  }
-  
-  return { page, y };
 }
 
 
