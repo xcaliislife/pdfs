@@ -1201,11 +1201,12 @@ textToPdfBtn.addEventListener('click', () => {
           <option value="10">Pequeño</option>
           <option value="12" selected>Normal</option>
           <option value="14">Grande</option>
+          <option value="18">Extra grande</option>
         </select>
       </div>
       
       <textarea class="text-modal-textarea" 
-                placeholder="Escribe tu texto aquí... Usa **negritas** y _itálicas_"></textarea>
+                placeholder="Escribe tu texto aquí..."></textarea>
       
       <div class="word-counter">0/20,000 palabras</div>
       
@@ -1244,6 +1245,8 @@ textToPdfBtn.addEventListener('click', () => {
   });
 });
 
+
+
 // 4. Función de generación de PDF (la que ya tenías)
 async function createFormattedPdf(text, baseFontSize = 12) {
   try {
@@ -1257,9 +1260,17 @@ async function createFormattedPdf(text, baseFontSize = 12) {
     const lineHeight = baseFontSize * 1.5;
     let y = page.getHeight() - margin;
 
-    const paragraphs = text.split('\n').filter(p => p.trim() !== '');
+    const paragraphs = text.split(/\r?\n/)
     
     for (const paragraph of paragraphs) {
+      if (paragraph.trim() === '') {
+        y -= lineHeight * 0.8; // Espacio entre párrafos
+        if (y < margin) {
+          page = pdfDoc.addPage([595, 842]);
+          y = page.getHeight() - margin;
+        }
+        continue;
+      }
       let currentFont = helvetica;
       let currentColor = rgb(0, 0, 0);
       let currentText = '';
