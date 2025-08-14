@@ -80,6 +80,7 @@
   height: 32px;
   padding: 0;
   display: flex;
+  align-items: center;
   justify-content: center;
   border-radius: 50%;
 }
@@ -152,32 +153,32 @@
   margin: 0;
 }
 
+/* Estilos para el historial de archivos - Actualizados */
 .files-history li {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   padding: 10px 15px;
   border-bottom: 2px solid #e0e0e0;
   background: white;
 }
 
-.files-history li:hover {
-  background-color: #dedede;
+.file-info {
+  margin-bottom: 8px;
 }
 
 .file-actions {
   display: flex;
   gap: 8px;
-}
-
-.file-info {
-  flex-grow: 1;
+  justify-content: flex-start;
 }
 
 .file-date {
   font-size: 11px;
   color: #666;
-  margin-left: 8px;
+}
+
+.files-history li:hover {
+  background-color: #dedede;
 }
 
 #noFilesMessage {
@@ -1102,10 +1103,9 @@ function displayFiles() {
       const actions = document.createElement("div");
       actions.className = "file-actions";
       
-      // Botón Abrir (solo ícono)
-const openBtn = document.createElement("button");
-openBtn.innerHTML = '<i class="fas fa-eye"></i>';
-openBtn.title = "Abrir"; // Tooltip al pasar el mouse
+      const openBtn = document.createElement("button");
+      openBtn.innerHTML = '<i class="fas fa-eye"></i>';
+      openBtn.title = "Abrir";
       openBtn.className = "icon-btn";
       openBtn.onclick = () => {
         const url = URL.createObjectURL(file.blob);
@@ -1113,10 +1113,9 @@ openBtn.title = "Abrir"; // Tooltip al pasar el mouse
         URL.revokeObjectURL(url);
       };
       
-      // Botón Descargar (solo ícono)
-const downloadBtn = document.createElement("button");
-downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
-downloadBtn.title = "Descargar";
+      const downloadBtn = document.createElement("button");
+      downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+      downloadBtn.title = "Descargar";
       downloadBtn.className = "icon-btn";
       downloadBtn.onclick = () => {
         const url = URL.createObjectURL(file.blob);
@@ -1127,10 +1126,9 @@ downloadBtn.title = "Descargar";
         URL.revokeObjectURL(url);
       };
       
-      // Botón Borrar (solo ícono)
-const deleteBtn = document.createElement("button");
-deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-deleteBtn.title = "Borrar";
+      const deleteBtn = document.createElement("button");
+      deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+      deleteBtn.title = "Borrar";
       deleteBtn.className = "icon-btn delete-btn";
       deleteBtn.onclick = () => {
         if (confirm(`¿Seguro que quieres borrar "${file.name}"?`)) {
