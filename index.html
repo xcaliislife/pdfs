@@ -533,7 +533,7 @@
     <button id="mergeBtn">Unir PDFs</button>
   </div>
 
-  <!-- Reemplazar la sección actual de "Imagen a PDF" con esta versión mejorada -->
+ <!-- Reemplazar la sección actual de "Imagen a PDF" con esta versión mejorada -->
 <div class="section">
   <label for="imageInput">Imagen a PDF</label>
   <input id="imageInput" type="file" accept="image/*" multiple>
@@ -560,14 +560,24 @@
       </div>
     </div>
     
-    <div style="margin-bottom: 15px;">
-      <label for="pageMargin">Margen (mm):</label>
-      <input type="range" id="pageMargin" min="0" max="50" value="10" 
-             style="width: 100%; margin: 8px 0;">
-      <div style="display: flex; justify-content: space-between; font-size: 12px;">
-        <span>0 mm</span>
-        <span id="marginValue">10 mm</span>
-        <span>50 mm</span>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+      <div>
+        <label for="pageMargin">Margen (mm):</label>
+        <input type="range" id="pageMargin" min="0" max="50" value="10" 
+               style="width: 100%; margin: 8px 0;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px;">
+          <span>0 mm</span>
+          <span id="marginValue">10 mm</span>
+          <span>50 mm</span>
+        </div>
+      </div>
+      <div>
+        <label for="colorMode">Modo de color:</label>
+        <select id="colorMode" style="width: 100%; padding: 8px; margin: 8px 0;">
+          <option value="color" selected>Color</option>
+          <option value="bw">Blanco y Negro</option>
+          <option value="grayscale">Escala de Grises</option>
+        </select>
       </div>
     </div>
     
@@ -840,8 +850,8 @@ async function getCustomFileName(defaultName) {
 
 
 
-// Convertir imágenes a PDF
-   imgToPdfBtn.addEventListener('click', async () => {
+// Reemplazar la función imgToPdfBtn.addEventListener('click') con esta versión mejorada
+imgToPdfBtn.addEventListener('click', async () => {
   if (imageFiles.length === 0) {
     alert('Selecciona al menos una imagen.');
     return;
@@ -855,42 +865,48 @@ async function getCustomFileName(defaultName) {
   const pageOrientation = document.getElementById('pageOrientation').value;
   const pageMargin = parseInt(document.getElementById('pageMargin').value);
   const imagePosition = document.getElementById('imagePosition').value;
+  const colorMode = document.getElementById('colorMode').value;
 
   try {
     for (const imgFile of imageFiles) {
       const imgBytes = await imgFile.arrayBuffer();
 
       let img;
-      try {
-        img = await pdfDoc.embedJpg(imgBytes);
-      } catch {
-        img = await pdfDoc.embedPng(imgBytes);
+      
+      // Procesar la imagen según el modo de color seleccionado
+      if (colorMode === 'color') {
+        // Mantener color original
+        try {
+          img = await pdfDoc.embedJpg(imgBytes);
+        } catch {
+          img = await pdfDoc.embedPng(imgBytes);
+        }
+      } else {
+        // Convertir a blanco y negro o escala de grises
+        img = await convertImageToGrayscale(imgBytes, pdfDoc, colorMode);
       }
 
       // Determinar tamaño de página
       let pageWidth, pageHeight;
       
       if (pageSize === 'original') {
-        // Usar tamaño original de la imagen
         pageWidth = img.width;
         pageHeight = img.height;
       } else {
-        // Usar tamaño de página estándar
-        const marginPoints = pageMargin * 2.83465; // Convertir mm a puntos (1 mm = 2.83465 puntos)
+        const marginPoints = pageMargin * 2.83465;
         
         if (pageSize === 'letter') {
-          pageWidth = 612; // 215.9 mm en puntos
-          pageHeight = 792; // 279.4 mm en puntos
+          pageWidth = 612;
+          pageHeight = 792;
         } else if (pageSize === 'a4') {
-          pageWidth = 595; // 210 mm en puntos
-          pageHeight = 842; // 297 mm en puntos
+          pageWidth = 595;
+          pageHeight = 842;
         }
         
         // Aplicar orientación
         if (pageOrientation === 'landscape') {
           [pageWidth, pageHeight] = [pageHeight, pageWidth];
         } else if (pageOrientation === 'auto') {
-          // Orientación automática basada en la imagen
           const imgAspect = img.width / img.height;
           const pageAspect = pageWidth / pageHeight;
           
@@ -899,7 +915,6 @@ async function getCustomFileName(defaultName) {
           }
         }
         
-        // Restar márgenes del área usable
         pageWidth -= marginPoints * 2;
         pageHeight -= marginPoints * 2;
       }
@@ -911,19 +926,16 @@ async function getCustomFileName(defaultName) {
       const marginPoints = pageMargin * 2.83465;
       
       if (pageSize === 'original') {
-        // Tamaño original - imagen ocupa toda la página
         imgWidth = img.width;
         imgHeight = img.height;
         x = 0;
         y = 0;
       } else if (imagePosition === 'stretch') {
-        // Estirar imagen a página completa
         imgWidth = pageWidth;
         imgHeight = pageHeight;
         x = 0;
         y = 0;
       } else {
-        // Escalar imagen manteniendo proporción para que quepa en la página
         const scaleX = (pageWidth - marginPoints * 2) / img.width;
         const scaleY = (pageHeight - marginPoints * 2) / img.height;
         const scale = Math.min(scaleX, scaleY);
@@ -931,7 +943,6 @@ async function getCustomFileName(defaultName) {
         imgWidth = img.width * scale;
         imgHeight = img.height * scale;
         
-        // Calcular posición
         if (imagePosition === 'center') {
           x = (pageWidth - imgWidth) / 2;
           y = (pageHeight - imgHeight) / 2;
@@ -953,7 +964,12 @@ async function getCustomFileName(defaultName) {
     }
 
     await downloadAndSavePDF(pdfDoc, fileName);
-    showToast('PDF creado correctamente con las configuraciones seleccionadas');
+    
+    let modeText = '';
+    if (colorMode === 'bw') modeText = ' en Blanco y Negro';
+    else if (colorMode === 'grayscale') modeText = ' en Escala de Grises';
+    
+    showToast(`PDF creado correctamente${modeText}`);
     
   } catch (e) {
     console.error('Error al convertir imágenes:', e);
@@ -961,29 +977,88 @@ async function getCustomFileName(defaultName) {
   }
 });
 
-// Agregar este event listener para actualizar el valor del margen
+// Función para convertir imagen a blanco y negro o escala de grises
+async function convertImageToGrayscale(imgBytes, pdfDoc, mode) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(new Blob([imgBytes]));
+    
+    img.onload = function() {
+      // Crear canvas para procesar la imagen
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      
+      // Dibujar imagen original
+      ctx.drawImage(img, 0, 0);
+      
+      // Obtener datos de píxeles
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Aplicar filtro según el modo
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        if (mode === 'grayscale') {
+          // Escala de grises suave
+          const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          data[i] = data[i + 1] = data[i + 2] = gray;
+        } else if (mode === 'bw') {
+          // Blanco y negro puro (dithering)
+          const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          const threshold = 128;
+          const bw = gray > threshold ? 255 : 0;
+          data[i] = data[i + 1] = data[i + 2] = bw;
+        }
+      }
+      
+      // Aplicar cambios
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Convertir canvas a blob y luego embed en PDF
+      canvas.toBlob(async (blob) => {
+        try {
+          const arrayBuffer = await blob.arrayBuffer();
+          let embeddedImg;
+          
+          // Intentar como JPG primero, luego PNG
+          try {
+            embeddedImg = await pdfDoc.embedJpg(arrayBuffer);
+          } catch {
+            embeddedImg = await pdfDoc.embedPng(arrayBuffer);
+          }
+          
+          URL.revokeObjectURL(url);
+          resolve(embeddedImg);
+        } catch (error) {
+          URL.revokeObjectURL(url);
+          reject(error);
+        }
+      }, 'image/jpeg', 0.9);
+    };
+    
+    img.onerror = function() {
+      URL.revokeObjectURL(url);
+      reject(new Error('Error al cargar la imagen'));
+    };
+    
+    img.src = url;
+  });
+}
+
+// Mantener los event listeners existentes para márgenes
 document.getElementById('pageMargin').addEventListener('input', (e) => {
   document.getElementById('marginValue').textContent = `${e.target.value} mm`;
 });
 
-// Agregar este código para previsualización en tiempo real (opcional)
-document.getElementById('pageSize').addEventListener('change', updatePreview);
-document.getElementById('pageOrientation').addEventListener('change', updatePreview);
-document.getElementById('pageMargin').addEventListener('input', updatePreview);
-document.getElementById('imagePosition').addEventListener('change', updatePreview);
-
-function updatePreview() {
-  // Esta función puede usarse para mostrar una previsualización de cómo se verá la página
-  // Por ahora solo actualizamos el valor del margen
-  const marginValue = document.getElementById('pageMargin').value;
-  document.getElementById('marginValue').textContent = `${marginValue} mm`;
-}
-
-// Inicializar el valor del margen al cargar la página
+// Inicializar el valor del margen
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('marginValue').textContent = '10 mm';
 });
-
 
 
   // Añadir números de página
