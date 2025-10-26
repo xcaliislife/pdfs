@@ -533,12 +533,57 @@
     <button id="mergeBtn">Unir PDFs</button>
   </div>
 
-  <div class="section">
-    <label for="imageInput">Imagen a PDF</label>
-    <input id="imageInput" type="file" accept="image/*" multiple>
-    <div id="imageList"></div>
-    <button id="imgToPdfBtn">Convertir imágenes a PDF</button>
+  <!-- Reemplazar la sección actual de "Imagen a PDF" con esta versión mejorada -->
+<div class="section">
+  <label for="imageInput">Imagen a PDF</label>
+  <input id="imageInput" type="file" accept="image/*" multiple>
+  <div id="imageList"></div>
+  
+  <!-- Opciones de configuración -->
+  <div style="margin-top: 15px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+      <div>
+        <label for="pageSize">Tamaño de página:</label>
+        <select id="pageSize" style="width: 100%; padding: 8px; margin: 8px 0;">
+          <option value="original">Original (Tamaño imagen)</option>
+          <option value="letter" selected>Carta (215.9 x 279.4 mm)</option>
+          <option value="a4">A4 (210 x 297 mm)</option>
+        </select>
+      </div>
+      <div>
+        <label for="pageOrientation">Orientación:</label>
+        <select id="pageOrientation" style="width: 100%; padding: 8px; margin: 8px 0;">
+          <option value="portrait" selected>Vertical</option>
+          <option value="landscape">Horizontal</option>
+          <option value="auto">Automática</option>
+        </select>
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+      <label for="pageMargin">Margen (mm):</label>
+      <input type="range" id="pageMargin" min="0" max="50" value="10" 
+             style="width: 100%; margin: 8px 0;">
+      <div style="display: flex; justify-content: space-between; font-size: 12px;">
+        <span>0 mm</span>
+        <span id="marginValue">10 mm</span>
+        <span>50 mm</span>
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+      <label for="imagePosition">Posición de la imagen:</label>
+      <select id="imagePosition" style="width: 100%; padding: 8px; margin: 8px 0;">
+        <option value="center" selected>Centro</option>
+        <option value="top">Superior</option>
+        <option value="bottom">Inferior</option>
+        <option value="stretch">Estirar a página completa</option>
+      </select>
+    </div>
   </div>
+  
+  <button id="imgToPdfBtn">Convertir imágenes a PDF</button>
+</div>
 
   <!-- Dentro de <div id="app-container">, después de las otras secciones -->
 <div class="section">
@@ -793,8 +838,10 @@ async function getCustomFileName(defaultName) {
     }
   });
 
+
+
 // Convertir imágenes a PDF
- imgToPdfBtn.addEventListener('click', async () => {
+   imgToPdfBtn.addEventListener('click', async () => {
   if (imageFiles.length === 0) {
     alert('Selecciona al menos una imagen.');
     return;
@@ -802,33 +849,142 @@ async function getCustomFileName(defaultName) {
 
   const fileName = await getCustomFileName('Imagenes_Convertidas.pdf');
   const pdfDoc = await PDFDocument.create();
+  
+  // Obtener configuraciones
+  const pageSize = document.getElementById('pageSize').value;
+  const pageOrientation = document.getElementById('pageOrientation').value;
+  const pageMargin = parseInt(document.getElementById('pageMargin').value);
+  const imagePosition = document.getElementById('imagePosition').value;
 
-    try {
-      for (const imgFile of imageFiles) {
-        const imgBytes = await imgFile.arrayBuffer();
+  try {
+    for (const imgFile of imageFiles) {
+      const imgBytes = await imgFile.arrayBuffer();
 
-        let img;
-        // Intentar JPG, si falla intentar PNG
-        try {
-          img = await pdfDoc.embedJpg(imgBytes);
-        } catch {
-          img = await pdfDoc.embedPng(imgBytes);
-        }
-
-        const page = pdfDoc.addPage([img.width, img.height]);
-        page.drawImage(img, {
-          x: 0,
-          y: 0,
-          width: img.width,
-          height: img.height,
-        });
+      let img;
+      try {
+        img = await pdfDoc.embedJpg(imgBytes);
+      } catch {
+        img = await pdfDoc.embedPng(imgBytes);
       }
 
-    downloadAndSavePDF(pdfDoc, fileName);
-    } catch (e) {
-      alert('Error al convertir imágenes: ' + e.message);
+      // Determinar tamaño de página
+      let pageWidth, pageHeight;
+      
+      if (pageSize === 'original') {
+        // Usar tamaño original de la imagen
+        pageWidth = img.width;
+        pageHeight = img.height;
+      } else {
+        // Usar tamaño de página estándar
+        const marginPoints = pageMargin * 2.83465; // Convertir mm a puntos (1 mm = 2.83465 puntos)
+        
+        if (pageSize === 'letter') {
+          pageWidth = 612; // 215.9 mm en puntos
+          pageHeight = 792; // 279.4 mm en puntos
+        } else if (pageSize === 'a4') {
+          pageWidth = 595; // 210 mm en puntos
+          pageHeight = 842; // 297 mm en puntos
+        }
+        
+        // Aplicar orientación
+        if (pageOrientation === 'landscape') {
+          [pageWidth, pageHeight] = [pageHeight, pageWidth];
+        } else if (pageOrientation === 'auto') {
+          // Orientación automática basada en la imagen
+          const imgAspect = img.width / img.height;
+          const pageAspect = pageWidth / pageHeight;
+          
+          if (imgAspect > pageAspect) {
+            [pageWidth, pageHeight] = [pageHeight, pageWidth];
+          }
+        }
+        
+        // Restar márgenes del área usable
+        pageWidth -= marginPoints * 2;
+        pageHeight -= marginPoints * 2;
+      }
+
+      const page = pdfDoc.addPage([pageWidth, pageHeight]);
+      
+      // Calcular dimensiones y posición de la imagen
+      let imgWidth, imgHeight, x, y;
+      const marginPoints = pageMargin * 2.83465;
+      
+      if (pageSize === 'original') {
+        // Tamaño original - imagen ocupa toda la página
+        imgWidth = img.width;
+        imgHeight = img.height;
+        x = 0;
+        y = 0;
+      } else if (imagePosition === 'stretch') {
+        // Estirar imagen a página completa
+        imgWidth = pageWidth;
+        imgHeight = pageHeight;
+        x = 0;
+        y = 0;
+      } else {
+        // Escalar imagen manteniendo proporción para que quepa en la página
+        const scaleX = (pageWidth - marginPoints * 2) / img.width;
+        const scaleY = (pageHeight - marginPoints * 2) / img.height;
+        const scale = Math.min(scaleX, scaleY);
+        
+        imgWidth = img.width * scale;
+        imgHeight = img.height * scale;
+        
+        // Calcular posición
+        if (imagePosition === 'center') {
+          x = (pageWidth - imgWidth) / 2;
+          y = (pageHeight - imgHeight) / 2;
+        } else if (imagePosition === 'top') {
+          x = (pageWidth - imgWidth) / 2;
+          y = pageHeight - imgHeight - marginPoints;
+        } else if (imagePosition === 'bottom') {
+          x = (pageWidth - imgWidth) / 2;
+          y = marginPoints;
+        }
+      }
+
+      page.drawImage(img, {
+        x: x,
+        y: y,
+        width: imgWidth,
+        height: imgHeight,
+      });
     }
-  });
+
+    await downloadAndSavePDF(pdfDoc, fileName);
+    showToast('PDF creado correctamente con las configuraciones seleccionadas');
+    
+  } catch (e) {
+    console.error('Error al convertir imágenes:', e);
+    showToast(`Error al convertir imágenes: ${e.message}`, 'error');
+  }
+});
+
+// Agregar este event listener para actualizar el valor del margen
+document.getElementById('pageMargin').addEventListener('input', (e) => {
+  document.getElementById('marginValue').textContent = `${e.target.value} mm`;
+});
+
+// Agregar este código para previsualización en tiempo real (opcional)
+document.getElementById('pageSize').addEventListener('change', updatePreview);
+document.getElementById('pageOrientation').addEventListener('change', updatePreview);
+document.getElementById('pageMargin').addEventListener('input', updatePreview);
+document.getElementById('imagePosition').addEventListener('change', updatePreview);
+
+function updatePreview() {
+  // Esta función puede usarse para mostrar una previsualización de cómo se verá la página
+  // Por ahora solo actualizamos el valor del margen
+  const marginValue = document.getElementById('pageMargin').value;
+  document.getElementById('marginValue').textContent = `${marginValue} mm`;
+}
+
+// Inicializar el valor del margen al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('marginValue').textContent = '10 mm';
+});
+
+
 
   // Añadir números de página
   addPageNumsBtn.addEventListener('click', async () => {
